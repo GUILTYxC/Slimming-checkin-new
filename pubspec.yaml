@@ -1,0 +1,47 @@
+name: slimming_checkin
+description: "A cross-platform (macOS / Android / Windows) weight-loss check-in app with a clean, light UI and delightful motion."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+  flutter: ">=3.35.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Routing
+  go_router: ^14.2.0
+
+  # Local database (cross-platform SQLite)
+  drift: ^2.20.0
+  drift_flutter: ^0.2.0
+
+  # Charts
+  fl_chart: ^0.68.0
+
+  # Motion / animation helpers
+  flutter_animate: ^4.5.0
+
+  # Local key-value preferences (units / theme)
+  shared_preferences: ^2.3.0
+
+  # Formatting
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+  # Drift code generation
+  drift_dev: ^2.20.0
+  build_runner: ^2.4.11
+
+flutter:
+  uses-material-design: true
