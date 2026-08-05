@@ -26,6 +26,7 @@ class CheckInPage extends ConsumerStatefulWidget {
 
 class _CheckInPageState extends ConsumerState<CheckInPage> {
   final _weightCtrl = TextEditingController();
+  final _bodyFatCtrl = TextEditingController();
   final _caloriesCtrl = TextEditingController();
 
   late final DateTime _date = (widget.date ?? DateTime.now()).dateOnly;
@@ -65,12 +66,20 @@ class _CheckInPageState extends ConsumerState<CheckInPage> {
     _planId = planId;
     _tasks = tasks;
     for (final t in tasks) {
-      _completed[t.id] = logs
-          .any((l) => l.taskId == t.id && l.completed);
+      _completed[t.id] = logs.any((l) => l.taskId == t.id && l.completed);
     }
     if (record?.weight != null) {
-      _weightCtrl.text =
-          Formatters.weight(record!.weight!, unit, withSuffix: false);
+      _weightCtrl.text = Formatters.weight(
+        record!.weight!,
+        unit,
+        withSuffix: false,
+      );
+    }
+    if (record?.bodyFat != null) {
+      _bodyFatCtrl.text = Formatters.bodyFat(
+        record!.bodyFat!,
+        withSuffix: false,
+      );
     }
     if (record != null && record.caloriesBurned > 0) {
       _caloriesCtrl.text = record.caloriesBurned.round().toString();
@@ -81,6 +90,7 @@ class _CheckInPageState extends ConsumerState<CheckInPage> {
   @override
   void dispose() {
     _weightCtrl.dispose();
+    _bodyFatCtrl.dispose();
     _caloriesCtrl.dispose();
     super.dispose();
   }
@@ -90,7 +100,9 @@ class _CheckInPageState extends ConsumerState<CheckInPage> {
   Future<void> _toggle(PlanTask task) async {
     final next = !(_completed[task.id] ?? false);
     setState(() => _completed[task.id] = next);
-    await ref.read(repositoryProvider).setTaskCompletion(
+    await ref
+        .read(repositoryProvider)
+        .setTaskCompletion(
           planId: _planId!,
           taskId: task.id,
           date: _date,
@@ -110,11 +122,24 @@ class _CheckInPageState extends ConsumerState<CheckInPage> {
     if (weightText.isNotEmpty) {
       final v = double.tryParse(weightText);
       if (v == null || v <= 0) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('请输入有效体重')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('请输入有效体重')));
         return;
       }
       weightKg = unit.toKg(v);
+    }
+    final bodyFatText = _bodyFatCtrl.text.trim();
+    double? bodyFat;
+    if (bodyFatText.isNotEmpty) {
+      final v = double.tryParse(bodyFatText);
+      if (v == null || v <= 0 || v >= 100) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('请输入有效体脂率（0–100）')));
+        return;
+      }
+      bodyFat = v;
     }
     final calories = double.tryParse(_caloriesCtrl.text.trim()) ?? 0;
 
@@ -123,12 +148,14 @@ class _CheckInPageState extends ConsumerState<CheckInPage> {
       planId: _planId!,
       date: _date,
       weight: weightKg,
+      bodyFat: bodyFat,
       caloriesBurned: calories,
     );
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('打卡已保存 ✓')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('打卡已保存 ✓')));
     Navigator.of(context).pop();
   }
 
@@ -146,92 +173,105 @@ class _CheckInPageState extends ConsumerState<CheckInPage> {
     final unit = ref.watch(settingsProvider.select((s) => s.weightUnit));
     return Scaffold(
       appBar: AppBar(title: const Text('每日打卡')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _noPlan
+      body:
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _noPlan
               ? const EmptyState(
-                  icon: Icons.flag_rounded,
-                  title: '还没有计划',
-                  message: '请先在「计划」中创建一个减肥计划，再来打卡。',
-                )
+                icon: Icons.flag_rounded,
+                title: '还没有计划',
+                message: '请先在「计划」中创建一个减肥计划，再来打卡。',
+              )
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
-                  children: [
-                    _DateBanner(date: _date),
-                    const SizedBox(height: 16),
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
+                children: [
+                  _DateBanner(date: _date),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricField(
+                          icon: Icons.monitor_weight_rounded,
+                          accent: AppColors.weight,
+                          accentSoft: AppColors.weightSoft,
+                          label: '今日体重',
+                          suffix: unit.suffix,
+                          controller: _weightCtrl,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MetricField(
+                          icon: Icons.percent_rounded,
+                          accent: AppColors.bodyFat,
+                          accentSoft: AppColors.bodyFatSoft,
+                          label: '体脂率',
+                          suffix: '%',
+                          controller: _bodyFatCtrl,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _MetricField(
+                    icon: Icons.local_fire_department_rounded,
+                    accent: AppColors.calorie,
+                    accentSoft: AppColors.calorieSoft,
+                    label: '消耗',
+                    suffix: '千卡',
+                    controller: _caloriesCtrl,
+                    allowDecimal: false,
+                  ),
+                  const SizedBox(height: 20),
+                  if (_tasks.isNotEmpty) ...[
                     Row(
                       children: [
-                        Expanded(
-                          child: _MetricField(
-                            icon: Icons.monitor_weight_rounded,
-                            accent: AppColors.weight,
-                            accentSoft: AppColors.weightSoft,
-                            label: '今日体重',
-                            suffix: unit.suffix,
-                            controller: _weightCtrl,
+                        const Expanded(
+                          child: Text(
+                            '今日任务',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _MetricField(
-                            icon: Icons.local_fire_department_rounded,
-                            accent: AppColors.calorie,
-                            accentSoft: AppColors.calorieSoft,
-                            label: '消耗',
-                            suffix: '千卡',
-                            controller: _caloriesCtrl,
-                            allowDecimal: false,
+                        Text(
+                          '$_doneCount/${_tasks.length}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryDark,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    if (_tasks.isNotEmpty) ...[
-                      Row(
+                    const SizedBox(height: 10),
+                    AppCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
+                      ),
+                      child: Column(
                         children: [
-                          const Expanded(
-                            child: Text(
-                              '今日任务',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
+                          for (var i = 0; i < _tasks.length; i++) ...[
+                            _TaskRow(
+                              title: _tasks[i].title,
+                              completed: _completed[_tasks[i].id] ?? false,
+                              onTap: () => _toggle(_tasks[i]),
                             ),
-                          ),
-                          Text(
-                            '$_doneCount/${_tasks.length}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primaryDark,
-                            ),
-                          ),
+                            if (i != _tasks.length - 1)
+                              const Divider(height: 1, indent: 52),
+                          ],
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      AppCard(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 4),
-                        child: Column(
-                          children: [
-                            for (var i = 0; i < _tasks.length; i++) ...[
-                              _TaskRow(
-                                title: _tasks[i].title,
-                                completed: _completed[_tasks[i].id] ?? false,
-                                onTap: () => _toggle(_tasks[i]),
-                              ),
-                              if (i != _tasks.length - 1)
-                                const Divider(height: 1, indent: 52),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 28),
-                    FilledButton(
-                      onPressed: _saving ? null : _save,
-                      child: _saving
-                          ? const SizedBox(
+                    ),
+                  ],
+                  const SizedBox(height: 28),
+                  FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child:
+                        _saving
+                            ? const SizedBox(
                               width: 22,
                               height: 22,
                               child: CircularProgressIndicator(
@@ -239,10 +279,10 @@ class _CheckInPageState extends ConsumerState<CheckInPage> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('保存打卡'),
-                    ),
-                  ],
-                ),
+                            : const Text('保存打卡'),
+                  ),
+                ],
+              ),
     );
   }
 }
@@ -264,8 +304,10 @@ class _DateBanner extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.today_rounded,
-                color: AppColors.primaryDark),
+            child: const Icon(
+              Icons.today_rounded,
+              color: AppColors.primaryDark,
+            ),
           ),
           const SizedBox(width: 14),
           Column(
@@ -350,7 +392,8 @@ class _MetricField extends StatelessWidget {
                 child: TextField(
                   controller: controller,
                   keyboardType: TextInputType.numberWithOptions(
-                      decimal: allowDecimal),
+                    decimal: allowDecimal,
+                  ),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
                       RegExp(allowDecimal ? r'[0-9.]' : r'[0-9]'),
@@ -420,10 +463,14 @@ class _TaskRow extends StatelessWidget {
                   width: 2,
                 ),
               ),
-              child: completed
-                  ? const Icon(Icons.check_rounded,
-                      size: 18, color: Colors.white)
-                  : null,
+              child:
+                  completed
+                      ? const Icon(
+                        Icons.check_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      )
+                      : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -432,11 +479,11 @@ class _TaskRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: completed
-                      ? AppColors.textTertiary
-                      : AppColors.textPrimary,
-                  decoration:
-                      completed ? TextDecoration.lineThrough : null,
+                  color:
+                      completed
+                          ? AppColors.textTertiary
+                          : AppColors.textPrimary,
+                  decoration: completed ? TextDecoration.lineThrough : null,
                   decorationColor: AppColors.textTertiary,
                 ),
                 child: Text(title),
@@ -485,20 +532,21 @@ class _CelebrationDialogState extends State<_CelebrationDialog> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: const [
               BoxShadow(
-                  color: Color(0x1F1A1D1F), blurRadius: 40, offset: Offset(0, 12)),
+                color: Color(0x1F1A1D1F),
+                blurRadius: 40,
+                offset: Offset(0, 12),
+              ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🎉', style: TextStyle(fontSize: 56))
-                  .animate()
-                  .scale(
-                    duration: 500.ms,
-                    curve: Curves.elasticOut,
-                    begin: const Offset(0.3, 0.3),
-                    end: const Offset(1, 1),
-                  ),
+              const Text('🎉', style: TextStyle(fontSize: 56)).animate().scale(
+                duration: 500.ms,
+                curve: Curves.elasticOut,
+                begin: const Offset(0.3, 0.3),
+                end: const Offset(1, 1),
+              ),
               const SizedBox(height: 14),
               const Text(
                 '今日任务全部完成！',
@@ -511,7 +559,10 @@ class _CelebrationDialogState extends State<_CelebrationDialog> {
               const SizedBox(height: 6),
               const Text(
                 '坚持就是胜利，继续加油 💪',
-                style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: AppColors.textSecondary,
+                ),
               ).animate(delay: 260.ms).fadeIn(),
             ],
           ),

@@ -105,6 +105,11 @@ class _ScrollingDashboard extends StatelessWidget {
       ),
       const SizedBox(height: 14),
       _ChartCard(
+        title: '体脂率趋势',
+        child: BodyFatLineChart(points: stats.bodyFatSeries),
+      ),
+      const SizedBox(height: 14),
+      _ChartCard(
         title: '近 7 天消耗',
         child: CalorieBarChart(points: stats.last7Calories),
       ),
@@ -170,20 +175,39 @@ class _BentoDashboard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    // Right: the two charts, each flexing to fill the height.
+                    // Right: weight + body-fat trends side by side on top,
+                    // the calorie chart filling the whole row below.
                     Expanded(
                       child: Column(
                         children: [
                           Expanded(
-                            child: _ChartCard(
-                              title: '体重趋势',
-                              fill: true,
-                              child: WeightLineChart(
-                                points: stats.weightSeries,
-                                unit: unit,
-                                targetKg: stats.plan.targetWeight,
-                                height: null,
-                              ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: _ChartCard(
+                                    title: '体重趋势',
+                                    fill: true,
+                                    child: WeightLineChart(
+                                      points: stats.weightSeries,
+                                      unit: unit,
+                                      targetKg: stats.plan.targetWeight,
+                                      height: null,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: _ChartCard(
+                                    title: '体脂率趋势',
+                                    fill: true,
+                                    child: BodyFatLineChart(
+                                      points: stats.bodyFatSeries,
+                                      height: null,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 14),

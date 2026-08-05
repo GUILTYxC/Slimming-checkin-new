@@ -19,6 +19,8 @@ class AppColors {
   static const Color weightSoft = Color(0xFFE8EEFF);
   static const Color calorie = Color(0xFFFF7A5A); // calorie coral
   static const Color calorieSoft = Color(0xFFFFEDE7);
+  static const Color bodyFat = Color(0xFF9B6DFF); // body-fat purple
+  static const Color bodyFatSoft = Color(0xFFF1EAFF);
   static const Color success = Color(0xFF34C77B);
   static const Color warning = Color(0xFFFFB020);
   static const Color danger = Color(0xFFF5455C);

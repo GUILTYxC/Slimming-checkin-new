@@ -33,64 +33,88 @@ void main() {
     expect(tasks.map((t) => t.title), ['喝水', '快走']);
   });
 
-  test('a daily record is unique per (plan, date) and upserts in place',
-      () async {
-    final id = await repo.createPlan(
-      name: 'P',
-      startDate: DateTime(2026, 7, 1),
-      endDate: DateTime(2026, 7, 31),
-      startWeight: 80,
-      targetWeight: 70,
-      taskTitles: ['a'],
-    );
-    final date = DateTime(2026, 7, 10);
+  test(
+    'a daily record is unique per (plan, date) and upserts in place',
+    () async {
+      final id = await repo.createPlan(
+        name: 'P',
+        startDate: DateTime(2026, 7, 1),
+        endDate: DateTime(2026, 7, 31),
+        startWeight: 80,
+        targetWeight: 70,
+        taskTitles: ['a'],
+      );
+      final date = DateTime(2026, 7, 10);
 
-    await repo.upsertRecord(planId: id, date: date, weight: 79, caloriesBurned: 200);
-    await repo.upsertRecord(planId: id, date: date, weight: 78, caloriesBurned: 250);
+      await repo.upsertRecord(
+        planId: id,
+        date: date,
+        weight: 79,
+        caloriesBurned: 200,
+      );
+      await repo.upsertRecord(
+        planId: id,
+        date: date,
+        weight: 78,
+        bodyFat: 23.5,
+        caloriesBurned: 250,
+      );
 
-    final rec = await repo.getRecord(id, date);
-    expect(rec?.weight, 78);
-    expect(rec?.caloriesBurned, 250);
+      final rec = await repo.getRecord(id, date);
+      expect(rec?.weight, 78);
+      expect(rec?.bodyFat, 23.5);
+      expect(rec?.caloriesBurned, 250);
 
-    final all = await repo.watchRecords(id).first;
-    expect(all.length, 1);
-  });
+      final all = await repo.watchRecords(id).first;
+      expect(all.length, 1);
+    },
+  );
 
-  test('task completion toggles, and deleting the active plan falls back',
-      () async {
-    final id = await repo.createPlan(
-      name: 'P',
-      startDate: DateTime(2026, 7, 1),
-      endDate: DateTime(2026, 7, 31),
-      startWeight: 80,
-      targetWeight: 70,
-      taskTitles: ['a'],
-    );
-    final tasks = await repo.getTasks(id);
-    final date = DateTime(2026, 7, 10);
+  test(
+    'task completion toggles, and deleting the active plan falls back',
+    () async {
+      final id = await repo.createPlan(
+        name: 'P',
+        startDate: DateTime(2026, 7, 1),
+        endDate: DateTime(2026, 7, 31),
+        startWeight: 80,
+        targetWeight: 70,
+        taskTitles: ['a'],
+      );
+      final tasks = await repo.getTasks(id);
+      final date = DateTime(2026, 7, 10);
 
-    await repo.setTaskCompletion(
-        planId: id, taskId: tasks.first.id, date: date, completed: true);
-    expect((await repo.getTaskLogs(id, date)).single.completed, isTrue);
+      await repo.setTaskCompletion(
+        planId: id,
+        taskId: tasks.first.id,
+        date: date,
+        completed: true,
+      );
+      expect((await repo.getTaskLogs(id, date)).single.completed, isTrue);
 
-    await repo.setTaskCompletion(
-        planId: id, taskId: tasks.first.id, date: date, completed: false);
-    expect((await repo.getTaskLogs(id, date)).single.completed, isFalse);
+      await repo.setTaskCompletion(
+        planId: id,
+        taskId: tasks.first.id,
+        date: date,
+        completed: false,
+      );
+      expect((await repo.getTaskLogs(id, date)).single.completed, isFalse);
 
-    final id2 = await repo.createPlan(
-      name: 'P2',
-      startDate: DateTime(2026, 8, 1),
-      endDate: DateTime(2026, 8, 31),
-      startWeight: 75,
-      targetWeight: 70,
-      taskTitles: ['x'],
-    );
-    expect((await repo.watchActivePlan().first)?.id, id2);
+      final id2 = await repo.createPlan(
+        name: 'P2',
+        startDate: DateTime(2026, 8, 1),
+        endDate: DateTime(2026, 8, 31),
+        startWeight: 75,
+        targetWeight: 70,
+        taskTitles: ['x'],
+      );
+      expect((await repo.watchActivePlan().first)?.id, id2);
 
-    await repo.deletePlan(id2);
-    expect((await repo.watchPlans().first).length, 1);
-    expect((await repo.watchActivePlan().first)?.id, id);
-  });
+      await repo.deletePlan(id2);
+      expect((await repo.watchPlans().first).length, 1);
+      expect((await repo.watchActivePlan().first)?.id, id);
+    },
+  );
 
   test('deleting a plan cascades to its tasks and records', () async {
     final id = await repo.createPlan(
@@ -102,7 +126,11 @@ void main() {
       taskTitles: ['a', 'b'],
     );
     await repo.upsertRecord(
-        planId: id, date: DateTime(2026, 7, 5), weight: 79, caloriesBurned: 100);
+      planId: id,
+      date: DateTime(2026, 7, 5),
+      weight: 79,
+      caloriesBurned: 100,
+    );
 
     await repo.deletePlan(id);
 

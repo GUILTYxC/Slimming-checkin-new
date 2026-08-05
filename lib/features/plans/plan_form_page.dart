@@ -23,7 +23,7 @@ class PlanFormPage extends ConsumerStatefulWidget {
 
 class _TaskField {
   _TaskField({this.id, String title = ''})
-      : controller = TextEditingController(text: title);
+    : controller = TextEditingController(text: title);
   final int? id;
   final TextEditingController controller;
 }
@@ -47,7 +47,10 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
     if (widget.isEditing) {
       _load();
     } else {
-      _tasks.addAll([_TaskField(title: '喝够 8 杯水'), _TaskField(title: '运动 30 分钟')]);
+      _tasks.addAll([
+        _TaskField(title: '喝够 8 杯水'),
+        _TaskField(title: '运动 30 分钟'),
+      ]);
     }
   }
 
@@ -61,10 +64,16 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
       _nameCtrl.text = plan.name;
       _startDate = plan.startDate;
       _endDate = plan.endDate;
-      _startWeightCtrl.text =
-          Formatters.weight(plan.startWeight, unit, withSuffix: false);
-      _targetWeightCtrl.text =
-          Formatters.weight(plan.targetWeight, unit, withSuffix: false);
+      _startWeightCtrl.text = Formatters.weight(
+        plan.startWeight,
+        unit,
+        withSuffix: false,
+      );
+      _targetWeightCtrl.text = Formatters.weight(
+        plan.targetWeight,
+        unit,
+        withSuffix: false,
+      );
       _tasks
         ..clear()
         ..addAll(tasks.map((t) => _TaskField(id: t.id, title: t.title)));
@@ -90,12 +99,13 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
       initialDate: initial,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
+      builder:
+          (context, child) => Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(primary: AppColors.primary),
+            ),
+            child: child!,
+          ),
     );
     if (picked == null) return;
     setState(() {
@@ -111,14 +121,15 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final titles = _tasks
-        .map((t) => t.controller.text.trim())
-        .where((t) => t.isNotEmpty)
-        .toList();
+    final titles =
+        _tasks
+            .map((t) => t.controller.text.trim())
+            .where((t) => t.isNotEmpty)
+            .toList();
     if (titles.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请至少添加一个每日打卡任务')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请至少添加一个每日打卡任务')));
       return;
     }
 
@@ -129,10 +140,11 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
     final targetKg = unit.toKg(double.parse(_targetWeightCtrl.text.trim()));
 
     if (widget.isEditing) {
-      final inputs = _tasks
-          .where((t) => t.controller.text.trim().isNotEmpty)
-          .map((t) => TaskInput(id: t.id, title: t.controller.text.trim()))
-          .toList();
+      final inputs =
+          _tasks
+              .where((t) => t.controller.text.trim().isNotEmpty)
+              .map((t) => TaskInput(id: t.id, title: t.controller.text.trim()))
+              .toList();
       await repo.updatePlan(
         id: widget.planId!,
         name: _nameCtrl.text.trim(),
@@ -160,92 +172,97 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
     final unit = ref.watch(settingsProvider.select((s) => s.weightUnit));
     return Scaffold(
       appBar: AppBar(title: Text(widget.isEditing ? '编辑计划' : '新建计划')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-                children: [
-                  _label('计划名称'),
-                  TextFormField(
-                    controller: _nameCtrl,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(hintText: '例如：夏日轻盈计划'),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? '请输入计划名称' : null,
-                  ),
-                  const SizedBox(height: 18),
-                  _label('计划周期'),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DateField(
-                          label: '开始',
-                          date: _startDate,
-                          onTap: () => _pickDate(isStart: true),
+      body:
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+                  children: [
+                    _label('计划名称'),
+                    TextFormField(
+                      controller: _nameCtrl,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(hintText: '例如：夏日轻盈计划'),
+                      validator:
+                          (v) =>
+                              (v == null || v.trim().isEmpty)
+                                  ? '请输入计划名称'
+                                  : null,
+                    ),
+                    const SizedBox(height: 18),
+                    _label('计划周期'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DateField(
+                            label: '开始',
+                            date: _startDate,
+                            onTap: () => _pickDate(isStart: true),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _DateField(
-                          label: '结束',
-                          date: _endDate,
-                          onTap: () => _pickDate(isStart: false),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _DateField(
+                            label: '结束',
+                            date: _endDate,
+                            onTap: () => _pickDate(isStart: false),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  _label('体重目标 (${unit.suffix})'),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _weightField(
-                          controller: _startWeightCtrl,
-                          hint: '当前体重',
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _label('体重目标 (${unit.suffix})'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _weightField(
+                            controller: _startWeightCtrl,
+                            hint: '当前体重',
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _weightField(
-                          controller: _targetWeightCtrl,
-                          hint: '目标体重',
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _weightField(
+                            controller: _targetWeightCtrl,
+                            hint: '目标体重',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    children: [
-                      const Expanded(child: _SectionLabel('每日打卡任务')),
-                      TextButton.icon(
-                        onPressed: () =>
-                            setState(() => _tasks.add(_TaskField())),
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('添加'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ..._buildTaskFields(),
-                  const SizedBox(height: 28),
-                  FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: _saving
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.4,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(widget.isEditing ? '保存修改' : '创建计划'),
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    Row(
+                      children: [
+                        const Expanded(child: _SectionLabel('每日打卡任务')),
+                        TextButton.icon(
+                          onPressed:
+                              () => setState(() => _tasks.add(_TaskField())),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('添加'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ..._buildTaskFields(),
+                    const SizedBox(height: 28),
+                    FilledButton(
+                      onPressed: _saving ? null : _save,
+                      child:
+                          _saving
+                              ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : Text(widget.isEditing ? '保存修改' : '创建计划'),
+                    ),
+                  ],
+                ),
               ),
-            ),
     );
   }
 
@@ -257,8 +274,11 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(
             children: [
-              const Icon(Icons.drag_indicator_rounded,
-                  color: AppColors.textTertiary, size: 20),
+              const Icon(
+                Icons.drag_indicator_rounded,
+                color: AppColors.textTertiary,
+                size: 20,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: TextFormField(
@@ -270,9 +290,10 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                 ),
               ),
               IconButton(
-                onPressed: _tasks.length <= 1
-                    ? null
-                    : () => setState(() => _tasks.removeAt(i)),
+                onPressed:
+                    _tasks.length <= 1
+                        ? null
+                        : () => setState(() => _tasks.removeAt(i)),
                 icon: const Icon(Icons.remove_circle_outline_rounded),
                 color: AppColors.textTertiary,
               ),
@@ -289,9 +310,7 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-      ],
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
       decoration: InputDecoration(hintText: hint),
       validator: (v) {
         final value = double.tryParse((v ?? '').trim());
@@ -302,9 +321,9 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
   }
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: _SectionLabel(text),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: _SectionLabel(text),
+  );
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -344,8 +363,11 @@ class _DateField extends StatelessWidget {
       radius: 14,
       child: Row(
         children: [
-          const Icon(Icons.calendar_today_rounded,
-              size: 18, color: AppColors.primaryDark),
+          const Icon(
+            Icons.calendar_today_rounded,
+            size: 18,
+            color: AppColors.primaryDark,
+          ),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,7 +375,9 @@ class _DateField extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 2),
               Text(

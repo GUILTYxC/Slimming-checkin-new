@@ -17,10 +17,7 @@ import '../settings/settings_controller.dart';
 class HistoryPage extends ConsumerWidget {
   const HistoryPage({super.key});
 
-  Future<void> _backfill(
-    BuildContext context,
-    Plan plan,
-  ) async {
+  Future<void> _backfill(BuildContext context, Plan plan) async {
     final today = AppDate.today();
     final last = plan.endDate.isBefore(today) ? plan.endDate : today;
     final picked = await showDatePicker(
@@ -28,16 +25,19 @@ class HistoryPage extends ConsumerWidget {
       initialDate: last,
       firstDate: plan.startDate,
       lastDate: last,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
+      builder:
+          (context, child) => Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(primary: AppColors.primary),
+            ),
+            child: child!,
+          ),
     );
     if (picked != null && context.mounted) {
-      context.push('/checkin',
-          extra: CheckInArgs(planId: plan.id, date: picked.dateOnly));
+      context.push(
+        '/checkin',
+        extra: CheckInArgs(planId: plan.id, date: picked.dateOnly),
+      );
     }
   }
 
@@ -51,13 +51,15 @@ class HistoryPage extends ConsumerWidget {
         title: const Text('打卡历史'),
         actions: [
           planAsync.maybeWhen(
-            data: (plan) => plan == null
-                ? const SizedBox.shrink()
-                : IconButton(
-                    tooltip: '补记',
-                    onPressed: () => _backfill(context, plan),
-                    icon: const Icon(Icons.edit_calendar_rounded),
-                  ),
+            data:
+                (plan) =>
+                    plan == null
+                        ? const SizedBox.shrink()
+                        : IconButton(
+                          tooltip: '补记',
+                          onPressed: () => _backfill(context, plan),
+                          icon: const Icon(Icons.edit_calendar_rounded),
+                        ),
             orElse: () => const SizedBox.shrink(),
           ),
           const SizedBox(width: 6),
@@ -91,8 +93,7 @@ class _HistoryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final records =
         ref.watch(planRecordsProvider(plan.id)).valueOrNull ?? const [];
-    final tasks =
-        ref.watch(planTasksProvider(plan.id)).valueOrNull ?? const [];
+    final tasks = ref.watch(planTasksProvider(plan.id)).valueOrNull ?? const [];
     final logs =
         ref.watch(planAllTaskLogsProvider(plan.id)).valueOrNull ?? const [];
 
@@ -102,8 +103,11 @@ class _HistoryList extends ConsumerWidget {
         title: '还没有打卡记录',
         message: '点击右上角补记，或回到概览页开始今天的打卡。',
         action: FilledButton.icon(
-          onPressed: () => context.push('/checkin',
-              extra: CheckInArgs(planId: plan.id, date: DateTime.now())),
+          onPressed:
+              () => context.push(
+                '/checkin',
+                extra: CheckInArgs(planId: plan.id, date: DateTime.now()),
+              ),
           icon: const Icon(Icons.add_task_rounded),
           label: const Text('去打卡'),
         ),
@@ -118,8 +122,10 @@ class _HistoryList extends ConsumerWidget {
         doneByDate[d] = (doneByDate[d] ?? 0) + 1;
       }
     }
-    final totalCalories =
-        records.fold<double>(0, (s, r) => s + r.caloriesBurned);
+    final totalCalories = records.fold<double>(
+      0,
+      (s, r) => s + r.caloriesBurned,
+    );
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
@@ -138,8 +144,11 @@ class _HistoryList extends ConsumerWidget {
           unit: unit,
           doneTasks: doneByDate[r.date] ?? 0,
           totalTasks: tasks.length,
-          onTap: () => context.push('/checkin',
-              extra: CheckInArgs(planId: plan.id, date: r.date)),
+          onTap:
+              () => context.push(
+                '/checkin',
+                extra: CheckInArgs(planId: plan.id, date: r.date),
+              ),
         ).animate(delay: (30 * index).ms).fadeIn(duration: 300.ms);
       },
     );
@@ -157,9 +166,7 @@ class _SummaryBar extends StatelessWidget {
       color: AppColors.primarySoft,
       child: Row(
         children: [
-          Expanded(
-            child: _stat('$days', '打卡天数', AppColors.primaryDark),
-          ),
+          Expanded(child: _stat('$days', '打卡天数', AppColors.primaryDark)),
           Container(width: 1, height: 32, color: Colors.white),
           Expanded(
             child: _stat(
@@ -187,10 +194,7 @@ class _SummaryBar extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -273,7 +277,9 @@ class _HistoryTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
                     _pill(
                       Icons.monitor_weight_rounded,
@@ -282,7 +288,12 @@ class _HistoryTile extends StatelessWidget {
                           : '未记录',
                       AppColors.weight,
                     ),
-                    const SizedBox(width: 8),
+                    if (record.bodyFat != null)
+                      _pill(
+                        Icons.percent_rounded,
+                        Formatters.bodyFat(record.bodyFat!),
+                        AppColors.bodyFat,
+                      ),
                     _pill(
                       Icons.local_fire_department_rounded,
                       '${Formatters.calories(record.caloriesBurned)} 千卡',
@@ -310,7 +321,9 @@ class _HistoryTile extends StatelessWidget {
                         : Icons.check_circle_outline_rounded,
                     size: 15,
                     color:
-                        allDone ? AppColors.primaryDark : AppColors.textTertiary,
+                        allDone
+                            ? AppColors.primaryDark
+                            : AppColors.textTertiary,
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -318,9 +331,10 @@ class _HistoryTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: allDone
-                          ? AppColors.primaryDark
-                          : AppColors.textSecondary,
+                      color:
+                          allDone
+                              ? AppColors.primaryDark
+                              : AppColors.textSecondary,
                     ),
                   ),
                 ],

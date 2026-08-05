@@ -49,3 +49,6 @@ linux/
 macos/
 windows/
 web/
+
+# Build artifacts
+*.apk

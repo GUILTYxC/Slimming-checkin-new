@@ -30,12 +30,14 @@ class SettingsController extends Notifier<AppSettings> {
   @override
   AppSettings build() {
     final prefs = ref.watch(sharedPreferencesProvider);
-    final unit = prefs.getString(_unitKey) == WeightUnit.lb.name
-        ? WeightUnit.lb
-        : WeightUnit.kg;
-    final theme = prefs.getString(_themeKey) == ThemeMode.system.name
-        ? ThemeMode.system
-        : ThemeMode.light;
+    final unit =
+        prefs.getString(_unitKey) == WeightUnit.lb.name
+            ? WeightUnit.lb
+            : WeightUnit.kg;
+    final theme =
+        prefs.getString(_themeKey) == ThemeMode.system.name
+            ? ThemeMode.system
+            : ThemeMode.light;
     return AppSettings(weightUnit: unit, themeMode: theme);
   }
 
@@ -50,5 +52,6 @@ class SettingsController extends Notifier<AppSettings> {
   }
 }
 
-final settingsProvider =
-    NotifierProvider<SettingsController, AppSettings>(SettingsController.new);
+final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
+  SettingsController.new,
+);

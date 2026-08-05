@@ -47,8 +47,10 @@ class SettingsPage extends ConsumerWidget {
                   trailing: Switch(
                     value: settings.themeMode == ThemeMode.system,
                     activeThumbColor: AppColors.primary,
-                    onChanged: (v) => controller
-                        .setThemeMode(v ? ThemeMode.system : ThemeMode.light),
+                    onChanged:
+                        (v) => controller.setThemeMode(
+                          v ? ThemeMode.system : ThemeMode.light,
+                        ),
                   ),
                 ),
               ],
@@ -90,8 +92,9 @@ class SettingsPage extends ConsumerWidget {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    gradient:
-                        const LinearGradient(colors: AppColors.primaryGradient),
+                    gradient: const LinearGradient(
+                      colors: AppColors.primaryGradient,
+                    ),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(Icons.eco_rounded, color: Colors.white),
@@ -133,64 +136,69 @@ class SettingsPage extends ConsumerWidget {
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('导出数据'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              json,
-              style: const TextStyle(fontSize: 12, height: 1.4),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('导出数据'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  json,
+                  style: const TextStyle(fontSize: 12, height: 1.4),
+                ),
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('关闭'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: json));
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('已复制到剪贴板')));
+                  }
+                },
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                label: const Text('复制'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
-          ),
-          FilledButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: json));
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已复制到剪贴板')),
-                );
-              }
-            },
-            icon: const Icon(Icons.copy_rounded, size: 18),
-            label: const Text('复制'),
-          ),
-        ],
-      ),
     );
   }
 
   Future<void> _clear(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('清空所有数据'),
-        content: const Text('将删除全部计划、打卡记录与任务，此操作不可撤销。确定继续吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('清空所有数据'),
+            content: const Text('将删除全部计划、打卡记录与任务，此操作不可撤销。确定继续吗？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('清空'),
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('清空'),
-          ),
-        ],
-      ),
     );
     if (ok == true) {
       await ref.read(repositoryProvider).clearAll();
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('数据已清空')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('数据已清空')));
       }
     }
   }
@@ -217,8 +225,10 @@ class _UnitToggle extends StatelessWidget {
               onTap: () => onChanged(u),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: value == u ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
@@ -229,9 +239,10 @@ class _UnitToggle extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: value == u
-                        ? AppColors.primaryDark
-                        : AppColors.textTertiary,
+                    color:
+                        value == u
+                            ? AppColors.primaryDark
+                            : AppColors.textTertiary,
                   ),
                 ),
               ),
@@ -308,8 +319,10 @@ class _Row extends StatelessWidget {
             if (trailing != null)
               trailing!
             else if (onTap != null)
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textTertiary),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textTertiary,
+              ),
           ],
         ),
       ),

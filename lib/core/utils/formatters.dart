@@ -31,8 +31,13 @@ class Formatters {
     return '$sign${_trim(value, 1)}';
   }
 
-  static String calories(num kcal) =>
-      '${kcal.round()}';
+  static String calories(num kcal) => '${kcal.round()}';
+
+  /// Formats a stored body-fat percentage value, e.g. `23.5%`.
+  static String bodyFat(num pct, {bool withSuffix = true}) {
+    final text = _trim(pct.toDouble(), 1);
+    return withSuffix ? '$text%' : text;
+  }
 
   static String percent(double ratio) =>
       '${(ratio * 100).clamp(0, 100).round()}%';

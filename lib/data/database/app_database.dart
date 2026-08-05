@@ -12,8 +12,7 @@ class Plans extends Table {
   RealColumn get startWeight => real()();
   RealColumn get targetWeight => real()();
   BoolColumn get isActive => boolean().withDefault(const Constant(false))();
-  DateTimeColumn get createdAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 /// A recurring daily task template that belongs to a plan.
@@ -25,20 +24,23 @@ class PlanTasks extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
-/// A single day's record for a plan: weight + calories burned + note.
+/// A single day's record for a plan: weight + body fat + calories + note.
 class DailyRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get planId =>
       integer().references(Plans, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get date => dateTime()();
   RealColumn get weight => real().nullable()();
+
+  /// Body-fat percentage value (e.g. 23.5 means 23.5%).
+  RealColumn get bodyFat => real().nullable()();
   RealColumn get caloriesBurned => real().withDefault(const Constant(0))();
   TextColumn get note => text().nullable()();
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {planId, date},
-      ];
+    {planId, date},
+  ];
 }
 
 /// Completion state of a single task on a single day.
@@ -53,8 +55,8 @@ class TaskLogs extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {taskId, date},
-      ];
+    {taskId, date},
+  ];
 }
 
 @DriftDatabase(tables: [Plans, PlanTasks, DailyRecords, TaskLogs])
@@ -65,13 +67,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) => m.createAll(),
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
-      );
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // v2: daily_records gains the nullable body_fat column.
+        await m.addColumn(dailyRecords, dailyRecords.bodyFat);
+      }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 }

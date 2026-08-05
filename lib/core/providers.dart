@@ -47,15 +47,15 @@ typedef DateScopedArgs = ({int planId, DateTime date});
 
 final recordForDateProvider =
     StreamProvider.family<DailyRecord?, DateScopedArgs>(
-  (ref, args) =>
-      ref.watch(repositoryProvider).watchRecord(args.planId, args.date),
-);
+      (ref, args) =>
+          ref.watch(repositoryProvider).watchRecord(args.planId, args.date),
+    );
 
 final taskLogsForDateProvider =
     StreamProvider.family<List<TaskLog>, DateScopedArgs>(
-  (ref, args) =>
-      ref.watch(repositoryProvider).watchTaskLogs(args.planId, args.date),
-);
+      (ref, args) =>
+          ref.watch(repositoryProvider).watchTaskLogs(args.planId, args.date),
+    );
 
 /// Aggregated dashboard numbers for the active plan. Emits `data(null)` when no
 /// plan exists yet so the UI can show its empty state.

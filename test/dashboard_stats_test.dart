@@ -6,15 +6,15 @@ void main() {
   final today = DateTime(2026, 7, 21);
 
   Plan makePlan() => Plan(
-        id: 1,
-        name: 'Test',
-        startDate: DateTime(2026, 7, 11),
-        endDate: DateTime(2026, 7, 31),
-        startWeight: 80,
-        targetWeight: 70,
-        isActive: true,
-        createdAt: today,
-      );
+    id: 1,
+    name: 'Test',
+    startDate: DateTime(2026, 7, 11),
+    endDate: DateTime(2026, 7, 31),
+    startWeight: 80,
+    targetWeight: 70,
+    isActive: true,
+    createdAt: today,
+  );
 
   test('computes weight, progress, streak and today figures', () {
     final plan = makePlan();
@@ -24,23 +24,28 @@ void main() {
     ];
     final records = [
       DailyRecord(
-          id: 1,
-          planId: 1,
-          date: DateTime(2026, 7, 19),
-          weight: 78,
-          caloriesBurned: 300),
+        id: 1,
+        planId: 1,
+        date: DateTime(2026, 7, 19),
+        weight: 78,
+        bodyFat: 24.5,
+        caloriesBurned: 300,
+      ),
       DailyRecord(
-          id: 2,
-          planId: 1,
-          date: DateTime(2026, 7, 20),
-          weight: 77,
-          caloriesBurned: 400),
+        id: 2,
+        planId: 1,
+        date: DateTime(2026, 7, 20),
+        weight: 77,
+        caloriesBurned: 400,
+      ),
       DailyRecord(
-          id: 3,
-          planId: 1,
-          date: today,
-          weight: 76,
-          caloriesBurned: 500),
+        id: 3,
+        planId: 1,
+        date: today,
+        weight: 76,
+        bodyFat: 23.8,
+        caloriesBurned: 500,
+      ),
     ];
     final logs = [
       TaskLog(id: 1, planId: 1, taskId: 1, date: today, completed: true),
@@ -69,6 +74,11 @@ void main() {
     expect(s.totalDays, 21);
     expect(s.daysRemaining, 10);
     expect(s.last7Calories.length, 7);
+    // Body-fat series only includes records that recorded it, in date order.
+    expect(s.bodyFatSeries.length, 2);
+    expect(s.bodyFatSeries.first.date, DateTime(2026, 7, 19));
+    expect(s.bodyFatSeries.first.percent, 24.5);
+    expect(s.bodyFatSeries.last.percent, 23.8);
   });
 
   test('no records falls back to start weight with zero progress', () {
@@ -83,12 +93,12 @@ void main() {
     expect(s.progress, 0);
     expect(s.streak, 0);
     expect(s.checkedInToday, isFalse);
+    expect(s.bodyFatSeries, isEmpty);
   });
 
   test('progress is clamped to 1 once the goal is reached', () {
     final records = [
-      DailyRecord(
-          id: 1, planId: 1, date: today, weight: 68, caloriesBurned: 0),
+      DailyRecord(id: 1, planId: 1, date: today, weight: 68, caloriesBurned: 0),
     ];
     final s = DashboardStats.compute(
       plan: makePlan(),

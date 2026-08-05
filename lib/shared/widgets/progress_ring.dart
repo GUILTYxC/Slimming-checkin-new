@@ -72,25 +72,27 @@ class _RingPainter extends CustomPainter {
     const startAngle = -math.pi / 2;
     final sweep = 2 * math.pi * progress;
 
-    final track = Paint()
-      ..color = trackColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
+    final track =
+        Paint()
+          ..color = trackColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.round;
     canvas.drawArc(rect, 0, 2 * math.pi, false, track);
 
     if (progress <= 0) return;
 
-    final fg = Paint()
-      ..shader = SweepGradient(
-        startAngle: startAngle,
-        endAngle: startAngle + 2 * math.pi,
-        colors: gradient,
-        transform: const GradientRotation(-math.pi / 2),
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
+    final fg =
+        Paint()
+          ..shader = SweepGradient(
+            startAngle: startAngle,
+            endAngle: startAngle + 2 * math.pi,
+            colors: gradient,
+            transform: const GradientRotation(-math.pi / 2),
+          ).createShader(rect)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.round;
     canvas.drawArc(rect, startAngle, sweep, false, fg);
   }
 

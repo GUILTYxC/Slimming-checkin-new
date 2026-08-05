@@ -38,35 +38,34 @@ class _HomeShellState extends State<HomeShell> {
     final body = AnimatedSwitcher(
       duration: const Duration(milliseconds: 260),
       switchInCurve: Curves.easeOutCubic,
-      transitionBuilder: (child, anim) => FadeTransition(
-        opacity: anim,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.015),
-            end: Offset.zero,
-          ).animate(anim),
-          child: child,
-        ),
-      ),
-      child: KeyedSubtree(
-        key: ValueKey(_index),
-        child: _pages[_index],
-      ),
+      transitionBuilder:
+          (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.015),
+                end: Offset.zero,
+              ).animate(anim),
+              child: child,
+            ),
+          ),
+      child: KeyedSubtree(key: ValueKey(_index), child: _pages[_index]),
     );
 
-    final fab = _index == 0
-        ? FloatingActionButton.extended(
-            onPressed: () => context.push('/checkin'),
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 2,
-            icon: const Icon(Icons.add_task_rounded),
-            label: const Text(
-              '打卡',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          )
-        : null;
+    final fab =
+        _index == 0
+            ? FloatingActionButton.extended(
+              onPressed: () => context.push('/checkin'),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 2,
+              icon: const Icon(Icons.add_task_rounded),
+              label: const Text(
+                '打卡',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            )
+            : null;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -149,8 +148,10 @@ class _SideRail extends StatelessWidget {
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
-        unselectedLabelTextStyle:
-            const TextStyle(color: AppColors.textTertiary, fontSize: 12),
+        unselectedLabelTextStyle: const TextStyle(
+          color: AppColors.textTertiary,
+          fontSize: 12,
+        ),
         destinations: [
           for (final d in destinations)
             NavigationRailDestination(

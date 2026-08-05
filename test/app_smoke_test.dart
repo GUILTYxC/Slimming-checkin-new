@@ -9,8 +9,9 @@ import 'package:slimming_checkin/data/database/app_database.dart';
 import 'package:slimming_checkin/data/repositories/app_repository.dart';
 
 void main() {
-  testWidgets('shows the empty dashboard when there is no plan yet',
-      (tester) async {
+  testWidgets('shows the empty dashboard when there is no plan yet', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -34,8 +35,9 @@ void main() {
     await db.close();
   });
 
-  testWidgets('dashboard renders the active plan with its stats and charts',
-      (tester) async {
+  testWidgets('dashboard renders the active plan with its stats and charts', (
+    tester,
+  ) async {
     // Tall viewport so the lazily-built ListView renders every card.
     tester.view.physicalSize = const Size(600, 2200);
     tester.view.devicePixelRatio = 1.0;
@@ -58,6 +60,7 @@ void main() {
       planId: 1,
       date: now,
       weight: 78,
+      bodyFat: 23.5,
       caloriesBurned: 300,
     );
 
@@ -76,14 +79,16 @@ void main() {
 
     expect(find.text('夏日轻盈计划'), findsOneWidget);
     expect(find.text('体重趋势'), findsOneWidget);
+    expect(find.text('体脂率趋势'), findsOneWidget);
     expect(find.text('近 7 天消耗'), findsOneWidget);
     expect(find.text('任务打卡完成度'), findsOneWidget);
 
     await db.close();
   });
 
-  testWidgets('desktop bento dashboard fills the window without overflow',
-      (tester) async {
+  testWidgets('desktop bento dashboard fills the window without overflow', (
+    tester,
+  ) async {
     // Desktop-sized window comfortably past the bento breakpoint.
     tester.view.physicalSize = const Size(1200, 760);
     tester.view.devicePixelRatio = 1.0;
@@ -122,9 +127,10 @@ void main() {
     // pumpAndSettle also surfaces any RenderFlex overflow as a test failure.
     await tester.pumpAndSettle();
 
-    // Bento renders header, stats, today action and both charts at once.
+    // Bento renders header, stats, today action and all charts at once.
     expect(find.text('桌面计划'), findsOneWidget);
     expect(find.text('体重趋势'), findsOneWidget);
+    expect(find.text('体脂率趋势'), findsOneWidget);
     expect(find.text('近 7 天消耗'), findsOneWidget);
     expect(find.textContaining('已减重'), findsOneWidget);
     expect(find.text('任务完成度'), findsOneWidget);

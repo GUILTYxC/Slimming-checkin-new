@@ -15,6 +15,12 @@ class CaloriePoint {
   final double kcal;
 }
 
+class BodyFatPoint {
+  const BodyFatPoint(this.date, this.percent);
+  final DateTime date;
+  final double percent;
+}
+
 /// All derived numbers the dashboard shows, computed from raw rows so the logic
 /// stays pure and unit-testable.
 class DashboardStats {
@@ -36,6 +42,7 @@ class DashboardStats {
     required this.totalTaskDone,
     required this.totalTaskExpected,
     required this.weightSeries,
+    required this.bodyFatSeries,
     required this.last7Calories,
   });
 
@@ -56,6 +63,7 @@ class DashboardStats {
   final int totalTaskDone;
   final int totalTaskExpected;
   final List<WeightPoint> weightSeries;
+  final List<BodyFatPoint> bodyFatSeries;
   final List<CaloriePoint> last7Calories;
 
   bool get goalReached => currentWeight <= plan.targetWeight;
@@ -148,6 +156,14 @@ class DashboardStats {
         if (!r.date.isSameDate(plan.startDate)) WeightPoint(r.date, r.weight!),
     ];
 
+    // Body-fat series from records that recorded it (no start anchor).
+    final fatRecords =
+        records.where((r) => r.bodyFat != null).toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
+    final fatSeries = <BodyFatPoint>[
+      for (final r in fatRecords) BodyFatPoint(r.date, r.bodyFat!),
+    ];
+
     // Last 7 days of calories (oldest -> newest).
     final byDate = {for (final r in records) r.date.dateOnly: r.caloriesBurned};
     final last7 = <CaloriePoint>[
@@ -176,6 +192,7 @@ class DashboardStats {
       totalTaskDone: totalTaskDone,
       totalTaskExpected: totalTaskExpected,
       weightSeries: series,
+      bodyFatSeries: fatSeries,
       last7Calories: last7,
     );
   }

@@ -19,8 +19,10 @@ CustomTransitionPage<void> _fadeThrough(Widget child, GoRouterState state) {
     transitionDuration: const Duration(milliseconds: 320),
     reverseTransitionDuration: const Duration(milliseconds: 240),
     transitionsBuilder: (context, animation, secondary, child) {
-      final curved =
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
       return FadeTransition(
         opacity: curved,
         child: SlideTransition(
@@ -44,23 +46,25 @@ final GoRouter appRouter = GoRouter(
       routes: [
         GoRoute(
           path: 'plan/new',
-          pageBuilder: (context, state) =>
-              _fadeThrough(const PlanFormPage(), state),
+          pageBuilder:
+              (context, state) => _fadeThrough(const PlanFormPage(), state),
         ),
         GoRoute(
           path: 'plan/:id/edit',
-          pageBuilder: (context, state) => _fadeThrough(
-            PlanFormPage(planId: int.parse(state.pathParameters['id']!)),
-            state,
-          ),
+          pageBuilder:
+              (context, state) => _fadeThrough(
+                PlanFormPage(planId: int.parse(state.pathParameters['id']!)),
+                state,
+              ),
         ),
         GoRoute(
           path: 'checkin',
           pageBuilder: (context, state) {
             final extra = state.extra;
-            final page = extra is CheckInArgs
-                ? CheckInPage(planId: extra.planId, date: extra.date)
-                : const CheckInPage();
+            final page =
+                extra is CheckInArgs
+                    ? CheckInPage(planId: extra.planId, date: extra.date)
+                    : const CheckInPage();
             return _fadeThrough(page, state);
           },
         ),

@@ -14,18 +14,16 @@ class AppRepository {
   // ---------------------------------------------------------------------------
   // Plans
   // ---------------------------------------------------------------------------
-  Stream<List<Plan>> watchPlans() => (_db.select(_db.plans)
-        ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
-      .watch();
+  Stream<List<Plan>> watchPlans() =>
+      (_db.select(_db.plans)
+        ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
 
-  Stream<Plan?> watchActivePlan() =>
-      (_db.select(_db.plans)..where((t) => t.isActive.equals(true)))
-          .watch()
-          .map((rows) => rows.isEmpty ? null : rows.first);
+  Stream<Plan?> watchActivePlan() => (_db.select(_db.plans)..where(
+    (t) => t.isActive.equals(true),
+  )).watch().map((rows) => rows.isEmpty ? null : rows.first);
 
   Future<Plan?> getPlan(int id) =>
-      (_db.select(_db.plans)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      (_db.select(_db.plans)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<int> createPlan({
     required String name,
@@ -37,10 +35,12 @@ class AppRepository {
   }) {
     return _db.transaction(() async {
       // A newly created plan becomes the active one.
-      await _db.update(_db.plans).write(
-            const PlansCompanion(isActive: Value(false)),
-          );
-      final id = await _db.into(_db.plans).insert(
+      await _db
+          .update(_db.plans)
+          .write(const PlansCompanion(isActive: Value(false)));
+      final id = await _db
+          .into(_db.plans)
+          .insert(
             PlansCompanion.insert(
               name: name,
               startDate: startDate.dateOnly,
@@ -51,7 +51,9 @@ class AppRepository {
             ),
           );
       for (var i = 0; i < taskTitles.length; i++) {
-        await _db.into(_db.planTasks).insert(
+        await _db
+            .into(_db.planTasks)
+            .insert(
               PlanTasksCompanion.insert(
                 planId: id,
                 title: taskTitles[i],
@@ -83,26 +85,26 @@ class AppRepository {
         ),
       );
 
-      final existing = await (_db.select(_db.planTasks)
-            ..where((t) => t.planId.equals(id)))
-          .get();
+      final existing =
+          await (_db.select(_db.planTasks)
+            ..where((t) => t.planId.equals(id))).get();
       final keepIds =
           tasks.where((t) => t.id != null).map((t) => t.id!).toSet();
       for (final row in existing) {
         if (!keepIds.contains(row.id)) {
           // Remove the task and any logs that referenced it.
           await (_db.delete(_db.taskLogs)
-                ..where((t) => t.taskId.equals(row.id)))
-              .go();
+            ..where((t) => t.taskId.equals(row.id))).go();
           await (_db.delete(_db.planTasks)
-                ..where((t) => t.id.equals(row.id)))
-              .go();
+            ..where((t) => t.id.equals(row.id))).go();
         }
       }
       for (var i = 0; i < tasks.length; i++) {
         final task = tasks[i];
         if (task.id == null) {
-          await _db.into(_db.planTasks).insert(
+          await _db
+              .into(_db.planTasks)
+              .insert(
                 PlanTasksCompanion.insert(
                   planId: id,
                   title: task.title,
@@ -111,12 +113,8 @@ class AppRepository {
               );
         } else {
           await (_db.update(_db.planTasks)
-                ..where((t) => t.id.equals(task.id!)))
-              .write(
-            PlanTasksCompanion(
-              title: Value(task.title),
-              sortOrder: Value(i),
-            ),
+            ..where((t) => t.id.equals(task.id!))).write(
+            PlanTasksCompanion(title: Value(task.title), sortOrder: Value(i)),
           );
         }
       }
@@ -125,34 +123,36 @@ class AppRepository {
 
   Future<void> setActivePlan(int id) {
     return _db.transaction(() async {
-      await _db.update(_db.plans).write(
-            const PlansCompanion(isActive: Value(false)),
-          );
-      await (_db.update(_db.plans)..where((t) => t.id.equals(id))).write(
-        const PlansCompanion(isActive: Value(true)),
-      );
+      await _db
+          .update(_db.plans)
+          .write(const PlansCompanion(isActive: Value(false)));
+      await (_db.update(_db.plans)..where(
+        (t) => t.id.equals(id),
+      )).write(const PlansCompanion(isActive: Value(true)));
     });
   }
 
   Future<void> deletePlan(int id) {
     return _db.transaction(() async {
-      final plan = await (_db.select(_db.plans)
-            ..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      final plan =
+          await (_db.select(_db.plans)
+            ..where((t) => t.id.equals(id))).getSingleOrNull();
       // Explicit cascade (does not rely on SQLite FK enforcement).
       await (_db.delete(_db.taskLogs)..where((t) => t.planId.equals(id))).go();
-      await (_db.delete(_db.dailyRecords)..where((t) => t.planId.equals(id)))
-          .go();
+      await (_db.delete(_db.dailyRecords)
+        ..where((t) => t.planId.equals(id))).go();
       await (_db.delete(_db.planTasks)..where((t) => t.planId.equals(id))).go();
       await (_db.delete(_db.plans)..where((t) => t.id.equals(id))).go();
       if (plan?.isActive == true) {
-        final next = await (_db.select(_db.plans)
-              ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
-              ..limit(1))
-            .getSingleOrNull();
+        final next =
+            await (_db.select(_db.plans)
+                  ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+                  ..limit(1))
+                .getSingleOrNull();
         if (next != null) {
-          await (_db.update(_db.plans)..where((t) => t.id.equals(next.id)))
-              .write(const PlansCompanion(isActive: Value(true)));
+          await (_db.update(_db.plans)..where(
+            (t) => t.id.equals(next.id),
+          )).write(const PlansCompanion(isActive: Value(true)));
         }
       }
     });
@@ -161,32 +161,33 @@ class AppRepository {
   // ---------------------------------------------------------------------------
   // Tasks
   // ---------------------------------------------------------------------------
-  Stream<List<PlanTask>> watchTasks(int planId) => (_db.select(_db.planTasks)
-        ..where((t) => t.planId.equals(planId))
-        ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-      .watch();
+  Stream<List<PlanTask>> watchTasks(int planId) =>
+      (_db.select(_db.planTasks)
+            ..where((t) => t.planId.equals(planId))
+            ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+          .watch();
 
-  Future<List<PlanTask>> getTasks(int planId) => (_db.select(_db.planTasks)
-        ..where((t) => t.planId.equals(planId))
-        ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-      .get();
+  Future<List<PlanTask>> getTasks(int planId) =>
+      (_db.select(_db.planTasks)
+            ..where((t) => t.planId.equals(planId))
+            ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+          .get();
 
   // ---------------------------------------------------------------------------
   // Daily records
   // ---------------------------------------------------------------------------
   Stream<DailyRecord?> watchRecord(int planId, DateTime date) {
     final d = date.dateOnly;
-    return (_db.select(_db.dailyRecords)
-          ..where((t) => t.planId.equals(planId) & t.date.equals(d)))
-        .watch()
-        .map((rows) => rows.isEmpty ? null : rows.first);
+    return (_db.select(_db.dailyRecords)..where(
+      (t) => t.planId.equals(planId) & t.date.equals(d),
+    )).watch().map((rows) => rows.isEmpty ? null : rows.first);
   }
 
   Future<DailyRecord?> getRecord(int planId, DateTime date) {
     final d = date.dateOnly;
-    return (_db.select(_db.dailyRecords)
-          ..where((t) => t.planId.equals(planId) & t.date.equals(d)))
-        .getSingleOrNull();
+    return (_db.select(_db.dailyRecords)..where(
+      (t) => t.planId.equals(planId) & t.date.equals(d),
+    )).getSingleOrNull();
   }
 
   Stream<List<DailyRecord>> watchRecords(int planId) =>
@@ -199,27 +200,31 @@ class AppRepository {
     required int planId,
     required DateTime date,
     double? weight,
+    double? bodyFat,
     required double caloriesBurned,
     String? note,
   }) async {
     final d = date.dateOnly;
     final existing = await getRecord(planId, d);
     if (existing == null) {
-      await _db.into(_db.dailyRecords).insert(
+      await _db
+          .into(_db.dailyRecords)
+          .insert(
             DailyRecordsCompanion.insert(
               planId: planId,
               date: d,
               weight: Value(weight),
+              bodyFat: Value(bodyFat),
               caloriesBurned: Value(caloriesBurned),
               note: Value(note),
             ),
           );
     } else {
       await (_db.update(_db.dailyRecords)
-            ..where((t) => t.id.equals(existing.id)))
-          .write(
+        ..where((t) => t.id.equals(existing.id))).write(
         DailyRecordsCompanion(
           weight: Value(weight),
+          bodyFat: Value(bodyFat),
           caloriesBurned: Value(caloriesBurned),
           note: Value(note),
         ),
@@ -233,19 +238,16 @@ class AppRepository {
   Stream<List<TaskLog>> watchTaskLogs(int planId, DateTime date) {
     final d = date.dateOnly;
     return (_db.select(_db.taskLogs)
-          ..where((t) => t.planId.equals(planId) & t.date.equals(d)))
-        .watch();
+      ..where((t) => t.planId.equals(planId) & t.date.equals(d))).watch();
   }
 
   Stream<List<TaskLog>> watchAllTaskLogs(int planId) =>
-      (_db.select(_db.taskLogs)..where((t) => t.planId.equals(planId)))
-          .watch();
+      (_db.select(_db.taskLogs)..where((t) => t.planId.equals(planId))).watch();
 
   Future<List<TaskLog>> getTaskLogs(int planId, DateTime date) {
     final d = date.dateOnly;
     return (_db.select(_db.taskLogs)
-          ..where((t) => t.planId.equals(planId) & t.date.equals(d)))
-        .get();
+      ..where((t) => t.planId.equals(planId) & t.date.equals(d))).get();
   }
 
   Future<void> setTaskCompletion({
@@ -255,11 +257,14 @@ class AppRepository {
     required bool completed,
   }) async {
     final d = date.dateOnly;
-    final existing = await (_db.select(_db.taskLogs)
-          ..where((t) => t.taskId.equals(taskId) & t.date.equals(d)))
-        .getSingleOrNull();
+    final existing =
+        await (_db.select(_db.taskLogs)..where(
+          (t) => t.taskId.equals(taskId) & t.date.equals(d),
+        )).getSingleOrNull();
     if (existing == null) {
-      await _db.into(_db.taskLogs).insert(
+      await _db
+          .into(_db.taskLogs)
+          .insert(
             TaskLogsCompanion.insert(
               planId: planId,
               taskId: taskId,
@@ -268,8 +273,9 @@ class AppRepository {
             ),
           );
     } else {
-      await (_db.update(_db.taskLogs)..where((t) => t.id.equals(existing.id)))
-          .write(TaskLogsCompanion(completed: Value(completed)));
+      await (_db.update(_db.taskLogs)..where(
+        (t) => t.id.equals(existing.id),
+      )).write(TaskLogsCompanion(completed: Value(completed)));
     }
   }
 
@@ -292,45 +298,58 @@ class AppRepository {
     final logs = await _db.select(_db.taskLogs).get();
     return {
       'exportedAt': DateTime.now().toIso8601String(),
-      'plans': plans
-          .map((p) => {
-                'id': p.id,
-                'name': p.name,
-                'startDate': p.startDate.toIso8601String(),
-                'endDate': p.endDate.toIso8601String(),
-                'startWeight': p.startWeight,
-                'targetWeight': p.targetWeight,
-                'isActive': p.isActive,
-                'createdAt': p.createdAt.toIso8601String(),
-              })
-          .toList(),
-      'tasks': tasks
-          .map((t) => {
-                'id': t.id,
-                'planId': t.planId,
-                'title': t.title,
-                'sortOrder': t.sortOrder,
-              })
-          .toList(),
-      'records': records
-          .map((r) => {
-                'id': r.id,
-                'planId': r.planId,
-                'date': r.date.toIso8601String(),
-                'weight': r.weight,
-                'caloriesBurned': r.caloriesBurned,
-                'note': r.note,
-              })
-          .toList(),
-      'taskLogs': logs
-          .map((l) => {
-                'id': l.id,
-                'planId': l.planId,
-                'taskId': l.taskId,
-                'date': l.date.toIso8601String(),
-                'completed': l.completed,
-              })
-          .toList(),
+      'plans':
+          plans
+              .map(
+                (p) => {
+                  'id': p.id,
+                  'name': p.name,
+                  'startDate': p.startDate.toIso8601String(),
+                  'endDate': p.endDate.toIso8601String(),
+                  'startWeight': p.startWeight,
+                  'targetWeight': p.targetWeight,
+                  'isActive': p.isActive,
+                  'createdAt': p.createdAt.toIso8601String(),
+                },
+              )
+              .toList(),
+      'tasks':
+          tasks
+              .map(
+                (t) => {
+                  'id': t.id,
+                  'planId': t.planId,
+                  'title': t.title,
+                  'sortOrder': t.sortOrder,
+                },
+              )
+              .toList(),
+      'records':
+          records
+              .map(
+                (r) => {
+                  'id': r.id,
+                  'planId': r.planId,
+                  'date': r.date.toIso8601String(),
+                  'weight': r.weight,
+                  'bodyFat': r.bodyFat,
+                  'caloriesBurned': r.caloriesBurned,
+                  'note': r.note,
+                },
+              )
+              .toList(),
+      'taskLogs':
+          logs
+              .map(
+                (l) => {
+                  'id': l.id,
+                  'planId': l.planId,
+                  'taskId': l.taskId,
+                  'date': l.date.toIso8601String(),
+                  'completed': l.completed,
+                },
+              )
+              .toList(),
     };
   }
 }

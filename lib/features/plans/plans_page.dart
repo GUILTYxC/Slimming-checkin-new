@@ -52,10 +52,11 @@ class PlansPage extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
             itemCount: plans.length,
             separatorBuilder: (_, __) => const SizedBox(height: 14),
-            itemBuilder: (context, i) => _PlanCard(plan: plans[i], unit: unit)
-                .animate(delay: (50 * i).ms)
-                .fadeIn(duration: 340.ms)
-                .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
+            itemBuilder:
+                (context, i) => _PlanCard(plan: plans[i], unit: unit)
+                    .animate(delay: (50 * i).ms)
+                    .fadeIn(duration: 340.ms)
+                    .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
           );
         },
       ),
@@ -72,21 +73,24 @@ class _PlanCard extends ConsumerWidget {
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除计划'),
-        content: Text('确定删除「${plan.name}」吗？该计划的所有打卡记录都会被移除，此操作不可撤销。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('删除计划'),
+            content: Text('确定删除「${plan.name}」吗？该计划的所有打卡记录都会被移除，此操作不可撤销。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('删除'),
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
     );
     if (ok == true) {
       await ref.read(repositoryProvider).deletePlan(plan.id);
@@ -96,12 +100,14 @@ class _PlanCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return AppCard(
-      onTap: plan.isActive
-          ? null
-          : () => ref.read(repositoryProvider).setActivePlan(plan.id),
-      border: plan.isActive
-          ? Border.all(color: AppColors.primary, width: 1.6)
-          : null,
+      onTap:
+          plan.isActive
+              ? null
+              : () => ref.read(repositoryProvider).setActivePlan(plan.id),
+      border:
+          plan.isActive
+              ? Border.all(color: AppColors.primary, width: 1.6)
+              : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -125,7 +131,9 @@ class _PlanCard extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primarySoft,
                           borderRadius: BorderRadius.circular(20),
@@ -144,8 +152,10 @@ class _PlanCard extends ConsumerWidget {
                 ),
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_horiz_rounded,
-                    color: AppColors.textTertiary),
+                icon: const Icon(
+                  Icons.more_horiz_rounded,
+                  color: AppColors.textTertiary,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -159,30 +169,40 @@ class _PlanCard extends ConsumerWidget {
                       _confirmDelete(context, ref);
                   }
                 },
-                itemBuilder: (context) => [
-                  if (!plan.isActive)
-                    const PopupMenuItem(
-                      value: 'active',
-                      child: _MenuRow(Icons.check_circle_outline_rounded, '设为当前'),
-                    ),
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: _MenuRow(Icons.edit_outlined, '编辑'),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: _MenuRow(Icons.delete_outline_rounded, '删除',
-                        color: AppColors.danger),
-                  ),
-                ],
+                itemBuilder:
+                    (context) => [
+                      if (!plan.isActive)
+                        const PopupMenuItem(
+                          value: 'active',
+                          child: _MenuRow(
+                            Icons.check_circle_outline_rounded,
+                            '设为当前',
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: _MenuRow(Icons.edit_outlined, '编辑'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: _MenuRow(
+                          Icons.delete_outline_rounded,
+                          '删除',
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ],
               ),
             ],
           ),
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.calendar_today_rounded,
-                  size: 14, color: AppColors.textTertiary),
+              const Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: AppColors.textTertiary,
+              ),
               const SizedBox(width: 6),
               Text(
                 '${AppDate.monthDay(plan.startDate)} - ${AppDate.monthDay(plan.endDate)}',
@@ -204,15 +224,26 @@ class _PlanCard extends ConsumerWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              _weightChip('起始', plan.startWeight, AppColors.weight,
-                  AppColors.weightSoft),
+              _weightChip(
+                '起始',
+                plan.startWeight,
+                AppColors.weight,
+                AppColors.weightSoft,
+              ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Icon(Icons.arrow_forward_rounded,
-                    size: 18, color: AppColors.textTertiary),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: AppColors.textTertiary,
+                ),
               ),
-              _weightChip('目标', plan.targetWeight, AppColors.primaryDark,
-                  AppColors.primarySoft),
+              _weightChip(
+                '目标',
+                plan.targetWeight,
+                AppColors.primaryDark,
+                AppColors.primarySoft,
+              ),
             ],
           ),
         ],

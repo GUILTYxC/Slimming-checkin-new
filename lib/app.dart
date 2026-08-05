@@ -10,8 +10,7 @@ class SlimmingCheckInApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode =
-        ref.watch(settingsProvider.select((s) => s.themeMode));
+    final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
     return MaterialApp.router(
       title: '轻盈打卡',
       debugShowCheckedModeBanner: false,

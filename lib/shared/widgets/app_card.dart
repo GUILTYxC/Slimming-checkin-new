@@ -4,11 +4,7 @@ import '../../core/theme/app_colors.dart';
 
 /// Soft, diffuse shadow used by every raised surface for a light, airy feel.
 const List<BoxShadow> kSoftShadow = [
-  BoxShadow(
-    color: Color(0x0F1A1D1F),
-    blurRadius: 24,
-    offset: Offset(0, 8),
-  ),
+  BoxShadow(color: Color(0x0F1A1D1F), blurRadius: 24, offset: Offset(0, 8)),
 ];
 
 /// Rounded white surface with a soft shadow. Optionally tappable with a ripple.
