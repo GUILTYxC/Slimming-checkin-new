@@ -39,6 +39,7 @@ class DashboardStats {
     required this.todayTasksDone,
     required this.todayTasksTotal,
     required this.checkedInToday,
+    required this.latestBodyFat,
     required this.totalTaskDone,
     required this.totalTaskExpected,
     required this.weightSeries,
@@ -60,6 +61,9 @@ class DashboardStats {
   final int todayTasksDone;
   final int todayTasksTotal;
   final bool checkedInToday;
+
+  /// Most recent recorded body-fat percentage, if any.
+  final double? latestBodyFat;
   final int totalTaskDone;
   final int totalTaskExpected;
   final List<WeightPoint> weightSeries;
@@ -133,6 +137,12 @@ class DashboardStats {
 
     final checkedInToday = records.any((r) => r.date.isSameDate(today));
 
+    // Latest recorded body-fat percentage (records are chronological).
+    final fatRecords =
+        records.where((r) => r.bodyFat != null).toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
+    final latestBodyFat = fatRecords.isEmpty ? null : fatRecords.last.bodyFat;
+
     // Streak: consecutive check-in days ending today (or yesterday for grace).
     final checkInDays = <DateTime>{
       for (final r in records) r.date.dateOnly,
@@ -157,9 +167,6 @@ class DashboardStats {
     ];
 
     // Body-fat series from records that recorded it (no start anchor).
-    final fatRecords =
-        records.where((r) => r.bodyFat != null).toList()
-          ..sort((a, b) => a.date.compareTo(b.date));
     final fatSeries = <BodyFatPoint>[
       for (final r in fatRecords) BodyFatPoint(r.date, r.bodyFat!),
     ];
@@ -189,6 +196,7 @@ class DashboardStats {
       todayTasksDone: todayLogs,
       todayTasksTotal: todayTasksTotal,
       checkedInToday: checkedInToday,
+      latestBodyFat: latestBodyFat,
       totalTaskDone: totalTaskDone,
       totalTaskExpected: totalTaskExpected,
       weightSeries: series,

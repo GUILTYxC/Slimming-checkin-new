@@ -111,6 +111,7 @@ void main() {
       planId: 1,
       date: now,
       weight: 78,
+      bodyFat: 23.5,
       caloriesBurned: 300,
     );
 
@@ -134,6 +135,9 @@ void main() {
     expect(find.text('近 7 天消耗'), findsOneWidget);
     expect(find.textContaining('已减重'), findsOneWidget);
     expect(find.text('任务完成度'), findsOneWidget);
+    // The hero progress card surfaces the latest body-fat reading.
+    expect(find.text('体脂率'), findsOneWidget);
+    expect(find.text('23.5%'), findsOneWidget);
 
     await db.close();
   });

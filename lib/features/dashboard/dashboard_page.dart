@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -297,96 +299,144 @@ class _ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ProgressRing(
-          progress: stats.progress,
-          center: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                '当前体重',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedCount(
-                    value: unit.fromKg(stats.currentWeight),
-                    formatter: (v) => v.toStringAsFixed(1),
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
+    Widget buildContent({double ringSize = 190, double numberSize = 36}) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ProgressRing(
+            progress: stats.progress,
+            size: ringSize,
+            center: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '当前体重',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary,
                   ),
-                  const SizedBox(width: 3),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 5),
-                    child: Text(
-                      unit.suffix,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedCount(
+                      value: unit.fromKg(stats.currentWeight),
+                      formatter: (v) => v.toStringAsFixed(1),
+                      style: TextStyle(
+                        fontSize: numberSize,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
                       ),
                     ),
+                    const SizedBox(width: 3),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Text(
+                        unit.suffix,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  stats.goalReached
-                      ? '已达成目标 🎉'
-                      : '已完成 ${Formatters.percent(stats.progress)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primaryDark,
-                    fontWeight: FontWeight.w700,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    stats.goalReached
+                        ? '已达成目标 🎉'
+                        : '已完成 ${Formatters.percent(stats.progress)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primaryDark,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _endLabel('起始', stats.plan.startWeight, unit, AppColors.weight),
+              if (stats.latestBodyFat != null) ...[
+                Container(width: 1, height: 34, color: AppColors.divider),
+                Column(
+                  children: [
+                    const Text(
+                      '体脂率',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      Formatters.bodyFat(stats.latestBodyFat!),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.bodyFat,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              Container(width: 1, height: 34, color: AppColors.divider),
+              _endLabel(
+                '目标',
+                stats.plan.targetWeight,
+                unit,
+                AppColors.primaryDark,
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _endLabel('起始', stats.plan.startWeight, unit, AppColors.weight),
-            Container(width: 1, height: 34, color: AppColors.divider),
-            _endLabel(
-              '目标',
-              stats.plan.targetWeight,
-              unit,
-              AppColors.primaryDark,
-            ),
-          ],
-        ),
-      ],
-    );
+        ],
+      );
+    }
+
+    if (!fillHeight) {
+      return AppCard(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        child: buildContent(),
+      );
+    }
+
+    // Desktop: scale the hero content up with the available space so the
+    // card stays prominent in large windows instead of looking empty.
     return AppCard(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-      child:
-          fillHeight
-              ? Center(child: FittedBox(fit: BoxFit.scaleDown, child: content))
-              : content,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final shortSide = math.min(
+            constraints.maxWidth,
+            constraints.maxHeight,
+          );
+          final ringSize = shortSide.clamp(190.0, 260.0);
+          final numberSize = 36.0 + (ringSize - 190) * 0.12;
+          return Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: buildContent(ringSize: ringSize, numberSize: numberSize),
+            ),
+          );
+        },
+      ),
     );
   }
 
