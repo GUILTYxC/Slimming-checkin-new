@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import 'app_card.dart';
 
 /// Compact metric card: an accent icon chip above a big value and a caption.
@@ -35,14 +36,14 @@ class StatTile extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: accentSoft,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.chipAll,
             ),
             child: Icon(icon, color: accent, size: 22),
           ),
           const SizedBox(height: 14),
           DefaultTextStyle.merge(
             style: const TextStyle(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
               height: 1.1,

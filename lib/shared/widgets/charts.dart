@@ -114,6 +114,37 @@ class WeightLineChart extends StatelessWidget {
               ),
             ),
           ),
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (_) => AppColors.surface,
+              tooltipRoundedRadius: 12,
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              getTooltipItems:
+                  (spots) => [
+                    for (final s in spots)
+                      LineTooltipItem(
+                        '${AppDate.monthDay(points[s.x.toInt()].date)}\n',
+                        const TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 11,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: '${s.y.toStringAsFixed(1)} ${unit.suffix}',
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+            ),
+          ),
           extraLinesData: ExtraLinesData(
             horizontalLines: [
               HorizontalLine(
@@ -189,6 +220,25 @@ class CalorieBarChart extends StatelessWidget {
         BarChartData(
           maxY: maxY,
           alignment: BarChartAlignment.spaceAround,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => AppColors.surface,
+              tooltipRoundedRadius: 12,
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              getTooltipItem:
+                  (group, groupIndex, rod, rodIndex) => BarTooltipItem(
+                    '${rod.toY.round()} 千卡',
+                    const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+            ),
+          ),
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
@@ -387,6 +437,37 @@ class BodyFatLineChart extends StatelessWidget {
                   );
                 },
               ),
+            ),
+          ),
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (_) => AppColors.surface,
+              tooltipRoundedRadius: 12,
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              getTooltipItems:
+                  (spots) => [
+                    for (final s in spots)
+                      LineTooltipItem(
+                        '${AppDate.monthDay(points[s.x.toInt()].date)}\n',
+                        const TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 11,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: Formatters.bodyFat(s.y),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
             ),
           ),
           lineBarsData: [

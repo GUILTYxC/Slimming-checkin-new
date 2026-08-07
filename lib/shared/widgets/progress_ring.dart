@@ -94,6 +94,20 @@ class _RingPainter extends CustomPainter {
           ..strokeWidth = stroke
           ..strokeCap = StrokeCap.round;
     canvas.drawArc(rect, startAngle, sweep, false, fg);
+
+    // Glowing cap at the leading edge of the progress arc.
+    final endAngle = startAngle + sweep;
+    final tip = Offset(
+      center.dx + radius * math.cos(endAngle),
+      center.dy + radius * math.sin(endAngle),
+    );
+    final glow =
+        Paint()
+          ..color = gradient.last.withValues(alpha: 0.30)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawCircle(tip, stroke * 0.62, glow);
+    canvas.drawCircle(tip, stroke * 0.34, Paint()..color = Colors.white);
+    canvas.drawCircle(tip, stroke * 0.22, Paint()..color = gradient.last);
   }
 
   @override

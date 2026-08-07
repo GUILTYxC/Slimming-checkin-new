@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/formatters.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/section_header.dart';
@@ -113,7 +114,7 @@ class SettingsPage extends ConsumerWidget {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        '版本 1.0.0 · 数据仅保存在本机',
+                        '版本 1.2.0 · 数据仅保存在本机',
                         style: TextStyle(
                           fontSize: 12.5,
                           color: AppColors.textSecondary,
@@ -276,7 +277,7 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: AppRadius.smallAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         child: Row(
@@ -286,7 +287,7 @@ class _Row extends StatelessWidget {
               height: 34,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadius.chipAll,
               ),
               child: Icon(icon, size: 19, color: accent),
             ),

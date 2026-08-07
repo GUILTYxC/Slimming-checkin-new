@@ -6,8 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/dashboard_stats.dart';
 import '../../shared/widgets/animated_count.dart';
@@ -15,8 +16,8 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/charts.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/progress_ring.dart';
-import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/stat_tile.dart';
+import '../checkin/checkin_sheet.dart';
 import '../settings/settings_controller.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -87,45 +88,33 @@ class _ScrollingDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = <Widget>[
-      _Header(planName: stats.plan.name),
-      const SizedBox(height: 18),
+      _Header(stats: stats),
+      const SizedBox(height: AppSpacing.lg),
+      _TodayCard(stats: stats),
+      const SizedBox(height: 14),
       _ProgressCard(stats: stats, unit: unit),
       const SizedBox(height: 14),
       _StatGrid(stats: stats, unit: unit),
       const SizedBox(height: 14),
       _TaskCompletionCard(stats: stats),
       const SizedBox(height: 14),
-      _TodayCard(stats: stats),
-      const SizedBox(height: 14),
-      _ChartCard(
-        title: '体重趋势',
-        child: WeightLineChart(
-          points: stats.weightSeries,
-          unit: unit,
-          targetKg: stats.plan.targetWeight,
-        ),
-      ),
-      const SizedBox(height: 14),
-      _ChartCard(
-        title: '体脂率趋势',
-        child: BodyFatLineChart(points: stats.bodyFatSeries),
-      ),
-      const SizedBox(height: 14),
-      _ChartCard(
-        title: '近 7 天消耗',
-        child: CalorieBarChart(points: stats.last7Calories),
-      ),
-      const SizedBox(height: 90),
+      _TrendCard(stats: stats, unit: unit),
+      const SizedBox(height: 100),
     ];
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.page,
+        12,
+        AppSpacing.page,
+        0,
+      ),
       itemCount: cards.length,
       itemBuilder:
           (context, i) => cards[i]
-              .animate(delay: (40 * i).ms)
+              .animate(delay: (50 * i).ms)
               .fadeIn(duration: 360.ms)
-              .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
+              .slideY(begin: 0.08, end: 0, curve: AppMotion.emphasized),
     );
   }
 }
@@ -143,8 +132,8 @@ class _BentoDashboard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(planName: stats.plan.name),
-              const SizedBox(height: 16),
+              _Header(stats: stats),
+              const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 height: 160,
                 child: _StatGrid(
@@ -177,54 +166,9 @@ class _BentoDashboard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    // Right: weight + body-fat trends side by side on top,
-                    // the calorie chart filling the whole row below.
+                    // Right: the segmented trend chart fills the space.
                     Expanded(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  child: _ChartCard(
-                                    title: '体重趋势',
-                                    fill: true,
-                                    child: WeightLineChart(
-                                      points: stats.weightSeries,
-                                      unit: unit,
-                                      targetKg: stats.plan.targetWeight,
-                                      height: null,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: _ChartCard(
-                                    title: '体脂率趋势',
-                                    fill: true,
-                                    child: BodyFatLineChart(
-                                      points: stats.bodyFatSeries,
-                                      height: null,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Expanded(
-                            child: _ChartCard(
-                              title: '近 7 天消耗',
-                              fill: true,
-                              child: CalorieBarChart(
-                                points: stats.last7Calories,
-                                height: null,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: _TrendCard(stats: stats, unit: unit, fill: true),
                     ),
                   ],
                 ),
@@ -234,33 +178,36 @@ class _BentoDashboard extends StatelessWidget {
         )
         .animate()
         .fadeIn(duration: 300.ms)
-        .slideY(begin: 0.02, end: 0, curve: Curves.easeOutCubic);
+        .slideY(begin: 0.02, end: 0, curve: AppMotion.emphasized);
   }
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.planName});
-  final String planName;
+  const _Header({required this.stats});
+  final DashboardStats stats;
 
   @override
   Widget build(BuildContext context) {
+    final today = DateTime.now();
     return Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '你好 👋',
-                style: TextStyle(
-                  fontSize: 15,
+              Text(
+                '你好 👋  今天是 ${AppDate.pretty(today)} 周${AppDate.shortWeekday(today)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13.5,
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                planName,
+                stats.plan.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -272,15 +219,40 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: AppColors.primaryGradient),
-            borderRadius: BorderRadius.circular(14),
+        if (stats.streak > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: AppColors.calorieSoft,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 17,
+                      color: AppColors.calorie,
+                    )
+                    .animate(onPlay: (c) => c.repeat(reverse: true, count: 6))
+                    .scaleXY(
+                      begin: 1,
+                      end: 1.15,
+                      duration: 800.ms,
+                      curve: Curves.easeInOut,
+                    ),
+                const SizedBox(width: 5),
+                Text(
+                  '连续 ${stats.streak} 天',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.calorie,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: const Icon(Icons.eco_rounded, color: Colors.white),
-        ),
       ],
     );
   }
@@ -306,6 +278,7 @@ class _ProgressCard extends StatelessWidget {
           ProgressRing(
             progress: stats.progress,
             size: ringSize,
+            trackColor: Colors.white.withValues(alpha: 0.75),
             center: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -352,7 +325,7 @@ class _ProgressCard extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -410,17 +383,30 @@ class _ProgressCard extends StatelessWidget {
       );
     }
 
-    if (!fillHeight) {
-      return AppCard(
+    // The hero card sits on a soft mint gradient so the ring feels lit.
+    Widget hero({required Widget child}) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.primarySoft, AppColors.surface],
+          ),
+          borderRadius: AppRadius.cardAll,
+          boxShadow: AppShadows.soft,
+        ),
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        child: buildContent(),
+        child: child,
       );
+    }
+
+    if (!fillHeight) {
+      return hero(child: buildContent());
     }
 
     // Desktop: scale the hero content up with the available space so the
     // card stays prominent in large windows instead of looking empty.
-    return AppCard(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+    return hero(
       child: LayoutBuilder(
         builder: (context, constraints) {
           final shortSide = math.min(
@@ -581,9 +567,10 @@ class _TodayCard extends StatelessWidget {
     return AppCard(
       padding: EdgeInsets.zero,
       onTap:
-          () => context.push(
-            '/checkin',
-            extra: CheckInArgs(planId: stats.plan.id, date: DateTime.now()),
+          () => showCheckInSheet(
+            context,
+            planId: stats.plan.id,
+            date: DateTime.now(),
           ),
       child: Container(
         decoration: BoxDecoration(
@@ -596,7 +583,7 @@ class _TodayCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(AppSpacing.page),
         child: Row(
           children: [
             Expanded(
@@ -661,7 +648,7 @@ class _TaskProgressBar extends StatelessWidget {
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: ratio.clamp(0.0, 1.0).toDouble()),
         duration: const Duration(milliseconds: 700),
-        curve: Curves.easeOutCubic,
+        curve: AppMotion.emphasized,
         builder:
             (context, v, _) => LinearProgressIndicator(
               value: v,
@@ -696,7 +683,7 @@ class _TaskCompletionCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.chipAll,
                 ),
                 child: const Icon(
                   Icons.checklist_rounded,
@@ -747,7 +734,7 @@ class _TaskCompletionCard extends StatelessWidget {
                 end: stats.taskCompletionRate.clamp(0.0, 1.0).toDouble(),
               ),
               duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOutCubic,
+              curve: AppMotion.emphasized,
               builder:
                   (context, v, _) => LinearProgressIndicator(
                     value: v,
@@ -763,25 +750,108 @@ class _TaskCompletionCard extends StatelessWidget {
   }
 }
 
-class _ChartCard extends StatelessWidget {
-  const _ChartCard({
-    required this.title,
-    required this.child,
+/// One card holding every trend chart; a segmented control switches between
+/// weight, body-fat and calorie views with a soft cross-fade.
+class _TrendCard extends StatefulWidget {
+  const _TrendCard({
+    required this.stats,
+    required this.unit,
     this.fill = false,
   });
-  final String title;
-  final Widget child;
+
+  final DashboardStats stats;
+  final WeightUnit unit;
+
+  /// When true the card stretches to fill its parent (desktop bento layout).
   final bool fill;
 
   @override
+  State<_TrendCard> createState() => _TrendCardState();
+}
+
+class _TrendCardState extends State<_TrendCard> {
+  String _tab = 'weight';
+
+  @override
   Widget build(BuildContext context) {
+    final stats = widget.stats;
+    final chart = switch (_tab) {
+      'bodyFat' => BodyFatLineChart(
+        key: const ValueKey('bodyFat'),
+        points: stats.bodyFatSeries,
+        height: widget.fill ? null : 200,
+      ),
+      'calories' => CalorieBarChart(
+        key: const ValueKey('calories'),
+        points: stats.last7Calories,
+        height: widget.fill ? null : 200,
+      ),
+      _ => WeightLineChart(
+        key: const ValueKey('weight'),
+        points: stats.weightSeries,
+        unit: widget.unit,
+        targetKg: stats.plan.targetWeight,
+        height: widget.fill ? null : 200,
+      ),
+    };
+
+    final switcher = AnimatedSwitcher(
+      duration: AppMotion.normal,
+      switchInCurve: AppMotion.emphasized,
+      transitionBuilder:
+          (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.03, 0),
+                end: Offset.zero,
+              ).animate(anim),
+              child: child,
+            ),
+          ),
+      child: chart,
+    );
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: title),
+          const Text(
+            '趋势',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: 'weight',
+                  label: Text('体重'),
+                  icon: Icon(Icons.monitor_weight_rounded, size: 16),
+                ),
+                ButtonSegment(
+                  value: 'bodyFat',
+                  label: Text('体脂'),
+                  icon: Icon(Icons.percent_rounded, size: 16),
+                ),
+                ButtonSegment(
+                  value: 'calories',
+                  label: Text('消耗'),
+                  icon: Icon(Icons.local_fire_department_rounded, size: 16),
+                ),
+              ],
+              selected: {_tab},
+              onSelectionChanged: (s) => setState(() => _tab = s.first),
+            ),
+          ),
           const SizedBox(height: 14),
-          if (fill) Expanded(child: child) else child,
+          if (widget.fill) Expanded(child: switcher) else switcher,
         ],
       ),
     );

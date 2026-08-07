@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/task_input.dart';
@@ -178,74 +179,116 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
               : Form(
                 key: _formKey,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    12,
+                    AppSpacing.page,
+                    24,
+                  ),
                   children: [
-                    _label('计划名称'),
-                    TextFormField(
-                      controller: _nameCtrl,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(hintText: '例如：夏日轻盈计划'),
-                      validator:
-                          (v) =>
-                              (v == null || v.trim().isEmpty)
-                                  ? '请输入计划名称'
-                                  : null,
-                    ),
-                    const SizedBox(height: 18),
-                    _label('计划周期'),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DateField(
-                            label: '开始',
-                            date: _startDate,
-                            onTap: () => _pickDate(isStart: true),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionTitle(
+                            icon: Icons.edit_note_rounded,
+                            title: '基本信息',
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DateField(
-                            label: '结束',
-                            date: _endDate,
-                            onTap: () => _pickDate(isStart: false),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameCtrl,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              hintText: '计划名称，例如：夏日轻盈计划',
+                            ),
+                            validator:
+                                (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                        ? '请输入计划名称'
+                                        : null,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    _label('体重目标 (${unit.suffix})'),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _weightField(
-                            controller: _startWeightCtrl,
-                            hint: '当前体重',
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _DateField(
+                                  label: '开始',
+                                  date: _startDate,
+                                  onTap: () => _pickDate(isStart: true),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _DateField(
+                                  label: '结束',
+                                  date: _endDate,
+                                  onTap: () => _pickDate(isStart: false),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _weightField(
-                            controller: _targetWeightCtrl,
-                            hint: '目标体重',
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionTitle(
+                            icon: Icons.monitor_weight_rounded,
+                            title: '体重目标 (${unit.suffix})',
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _weightField(
+                                  controller: _startWeightCtrl,
+                                  hint: '当前体重',
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _weightField(
+                                  controller: _targetWeightCtrl,
+                                  hint: '目标体重',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 22),
-                    Row(
-                      children: [
-                        const Expanded(child: _SectionLabel('每日打卡任务')),
-                        TextButton.icon(
-                          onPressed:
-                              () => setState(() => _tasks.add(_TaskField())),
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          label: const Text('添加'),
-                        ),
-                      ],
+                    const SizedBox(height: 14),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: _SectionTitle(
+                                  icon: Icons.checklist_rounded,
+                                  title: '每日打卡任务',
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed:
+                                    () => setState(
+                                      () => _tasks.add(_TaskField()),
+                                    ),
+                                icon: const Icon(Icons.add_rounded, size: 18),
+                                label: const Text('添加'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          ..._buildTaskFields(),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    ..._buildTaskFields(),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
                     FilledButton(
                       onPressed: _saving ? null : _save,
                       child:
@@ -319,26 +362,41 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
       },
     );
   }
-
-  Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: _SectionLabel(text),
-  );
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
+/// Card section title: small tinted icon chip next to a bold label.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: AppRadius.chipAll,
+          ),
+          child: Icon(icon, size: 17, color: AppColors.primaryDark),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

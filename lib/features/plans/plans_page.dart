@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/database/app_database.dart';
+import '../../shared/widgets/app_bottom_sheet.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../settings/settings_controller.dart';
@@ -49,14 +51,19 @@ class PlansPage extends ConsumerWidget {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              16,
+              AppSpacing.page,
+              100,
+            ),
             itemCount: plans.length,
             separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder:
                 (context, i) => _PlanCard(plan: plans[i], unit: unit)
                     .animate(delay: (50 * i).ms)
                     .fadeIn(duration: 340.ms)
-                    .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
+                    .slideY(begin: 0.08, end: 0, curve: AppMotion.emphasized),
           );
         },
       ),
@@ -97,17 +104,68 @@ class _PlanCard extends ConsumerWidget {
     }
   }
 
+  Future<void> _activate(BuildContext context, WidgetRef ref) async {
+    await ref.read(repositoryProvider).setActivePlan(plan.id);
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已切换到「${plan.name}」')));
+    }
+  }
+
+  void _showActions(BuildContext context, WidgetRef ref) {
+    showAppSheet<void>(
+      context,
+      heightFactor: 0.42,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!plan.isActive)
+                _ActionRow(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: '设为当前计划',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _activate(context, ref);
+                  },
+                ),
+              _ActionRow(
+                icon: Icons.edit_outlined,
+                label: '编辑',
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/plan/${plan.id}/edit');
+                },
+              ),
+              _ActionRow(
+                icon: Icons.delete_outline_rounded,
+                label: '删除',
+                color: AppColors.danger,
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDelete(context, ref);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AppCard(
-      onTap:
-          plan.isActive
-              ? null
-              : () => ref.read(repositoryProvider).setActivePlan(plan.id),
-      border:
-          plan.isActive
-              ? Border.all(color: AppColors.primary, width: 1.6)
-              : null,
+    final totalDays = AppDate.daysBetween(plan.startDate, plan.endDate) + 1;
+    final passed = (AppDate.daysBetween(plan.startDate, AppDate.today()) + 1)
+        .clamp(0, totalDays);
+    final ratio = totalDays == 0 ? 0.0 : passed / totalDays;
+
+    final card = AppCard(
+      onTap: plan.isActive ? null : () => _activate(context, ref),
+      shadow: plan.isActive ? const [] : kSoftShadow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -151,47 +209,14 @@ class _PlanCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              PopupMenuButton<String>(
+              IconButton(
+                tooltip: '更多操作',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _showActions(context, ref),
                 icon: const Icon(
                   Icons.more_horiz_rounded,
                   color: AppColors.textTertiary,
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                onSelected: (v) {
-                  switch (v) {
-                    case 'active':
-                      ref.read(repositoryProvider).setActivePlan(plan.id);
-                    case 'edit':
-                      context.push('/plan/${plan.id}/edit');
-                    case 'delete':
-                      _confirmDelete(context, ref);
-                  }
-                },
-                itemBuilder:
-                    (context) => [
-                      if (!plan.isActive)
-                        const PopupMenuItem(
-                          value: 'active',
-                          child: _MenuRow(
-                            Icons.check_circle_outline_rounded,
-                            '设为当前',
-                          ),
-                        ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: _MenuRow(Icons.edit_outlined, '编辑'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: _MenuRow(
-                          Icons.delete_outline_rounded,
-                          '删除',
-                          color: AppColors.danger,
-                        ),
-                      ),
-                    ],
               ),
             ],
           ),
@@ -213,13 +238,33 @@ class _PlanCard extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                '共 ${AppDate.daysBetween(plan.startDate, plan.endDate) + 1} 天',
+                '已进行 $passed/$totalDays 天',
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textTertiary,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: ratio.toDouble()),
+              duration: AppMotion.slow,
+              curve: AppMotion.emphasized,
+              builder:
+                  (context, v, _) => LinearProgressIndicator(
+                    value: v,
+                    minHeight: 6,
+                    backgroundColor: AppColors.surfaceMuted,
+                    valueColor: AlwaysStoppedAnimation(
+                      plan.isActive
+                          ? AppColors.primary
+                          : AppColors.textTertiary,
+                    ),
+                  ),
+            ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -249,15 +294,30 @@ class _PlanCard extends ConsumerWidget {
         ],
       ),
     );
+
+    // The active plan wears a mint gradient ring to stand out.
+    if (plan.isActive) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppColors.primaryGradient,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.card + 2),
+          boxShadow: AppShadows.soft,
+        ),
+        padding: const EdgeInsets.all(1.8),
+        child: card,
+      );
+    }
+    return card;
   }
 
   Widget _weightChip(String label, double kg, Color color, Color bg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: AppRadius.chipAll),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -279,20 +339,42 @@ class _PlanCard extends ConsumerWidget {
   }
 }
 
-class _MenuRow extends StatelessWidget {
-  const _MenuRow(this.icon, this.label, {this.color});
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
+
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color ?? AppColors.textSecondary),
-        const SizedBox(width: 10),
-        Text(label, style: TextStyle(color: color ?? AppColors.textPrimary)),
-      ],
+    final effective = color ?? AppColors.textPrimary;
+    return ListTile(
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.smallAll),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: (color ?? AppColors.primaryDark).withValues(alpha: 0.10),
+          borderRadius: AppRadius.chipAll,
+        ),
+        child: Icon(icon, size: 20, color: color ?? AppColors.primaryDark),
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: effective,
+        ),
+      ),
     );
   }
 }

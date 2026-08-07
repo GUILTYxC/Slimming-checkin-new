@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Surfaces
-  static const Color background = Color(0xFFF6F8FB);
+  // Surfaces — a whisper of mint in the background makes white cards float.
+  static const Color background = Color(0xFFF4F9F7);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceMuted = Color(0xFFF0F3F7);
+  static const Color surfaceMuted = Color(0xFFEFF5F2);
 
   // Brand
   static const Color primary = Color(0xFF2ED3B7); // mint / health
   static const Color primaryDark = Color(0xFF1FB49B);
   static const Color primarySoft = Color(0xFFE4F8F4);
+  static const Color primaryContainer = Color(0xFFCBF2EA);
 
   // Semantic accents
   static const Color weight = Color(0xFF4E7CFF); // weight blue
@@ -46,5 +47,9 @@ class AppColors {
   static const List<Color> calorieGradient = [
     Color(0xFFFF9C7E),
     Color(0xFFFF7A5A),
+  ];
+  static const List<Color> bodyFatGradient = [
+    Color(0xFFB48DFF),
+    Color(0xFF9B6DFF),
   ];
 }

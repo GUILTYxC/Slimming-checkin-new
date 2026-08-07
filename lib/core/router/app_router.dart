@@ -1,27 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/checkin/checkin_page.dart';
 import '../../features/home/home_shell.dart';
 import '../../features/plans/plan_form_page.dart';
-
-/// Arguments for opening the check-in screen on a specific plan/date.
-class CheckInArgs {
-  const CheckInArgs({required this.planId, required this.date});
-  final int planId;
-  final DateTime date;
-}
+import '../theme/app_tokens.dart';
 
 CustomTransitionPage<void> _fadeThrough(Widget child, GoRouterState state) {
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: const Duration(milliseconds: 320),
-    reverseTransitionDuration: const Duration(milliseconds: 240),
+    transitionDuration: AppMotion.normal,
+    reverseTransitionDuration: AppMotion.fast,
     transitionsBuilder: (context, animation, secondary, child) {
       final curved = CurvedAnimation(
         parent: animation,
-        curve: Curves.easeOutCubic,
+        curve: AppMotion.emphasized,
       );
       return FadeTransition(
         opacity: curved,
@@ -56,17 +49,6 @@ final GoRouter appRouter = GoRouter(
                 PlanFormPage(planId: int.parse(state.pathParameters['id']!)),
                 state,
               ),
-        ),
-        GoRoute(
-          path: 'checkin',
-          pageBuilder: (context, state) {
-            final extra = state.extra;
-            final page =
-                extra is CheckInArgs
-                    ? CheckInPage(planId: extra.planId, date: extra.date)
-                    : const CheckInPage();
-            return _fadeThrough(page, state);
-          },
         ),
       ],
     ),

@@ -1,7 +1,7 @@
 name: slimming_checkin
 description: "A cross-platform (macOS / Android / Windows) weight-loss check-in app with a clean, light UI and delightful motion."
 publish_to: "none"
-version: 1.1.1+3
+version: 1.2.0+4
 
 environment:
   sdk: ">=3.7.0 <4.0.0"

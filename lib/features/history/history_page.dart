@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/database/app_database.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../checkin/checkin_sheet.dart';
 import '../settings/settings_controller.dart';
 
 class HistoryPage extends ConsumerWidget {
@@ -34,10 +34,7 @@ class HistoryPage extends ConsumerWidget {
           ),
     );
     if (picked != null && context.mounted) {
-      context.push(
-        '/checkin',
-        extra: CheckInArgs(planId: plan.id, date: picked.dateOnly),
-      );
+      await showCheckInSheet(context, planId: plan.id, date: picked.dateOnly);
     }
   }
 
@@ -104,9 +101,10 @@ class _HistoryList extends ConsumerWidget {
         message: '点击右上角补记，或回到概览页开始今天的打卡。',
         action: FilledButton.icon(
           onPressed:
-              () => context.push(
-                '/checkin',
-                extra: CheckInArgs(planId: plan.id, date: DateTime.now()),
+              () => showCheckInSheet(
+                context,
+                planId: plan.id,
+                date: DateTime.now(),
               ),
           icon: const Icon(Icons.add_task_rounded),
           label: const Text('去打卡'),
@@ -126,77 +124,154 @@ class _HistoryList extends ConsumerWidget {
       0,
       (s, r) => s + r.caloriesBurned,
     );
+    final streak = _streak(sorted.map((r) => r.date).toList());
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
-      itemCount: sorted.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _SummaryBar(
-            days: records.length,
-            totalCalories: totalCalories,
-          );
-        }
-        final r = sorted[index - 1];
-        return _HistoryTile(
+    // Flatten the list into: summary card, then month header + tiles.
+    final items = <Widget>[
+      _SummaryBar(
+        days: records.length,
+        totalCalories: totalCalories,
+        streak: streak,
+      ),
+    ];
+    String? lastMonth;
+    for (final r in sorted) {
+      final month = DateFormat('yyyy年M月').format(r.date);
+      if (month != lastMonth) {
+        lastMonth = month;
+        items.add(_MonthHeader(label: month));
+      }
+      items.add(
+        _HistoryTile(
           record: r,
           unit: unit,
           doneTasks: doneByDate[r.date] ?? 0,
           totalTasks: tasks.length,
-          onTap:
-              () => context.push(
-                '/checkin',
-                extra: CheckInArgs(planId: plan.id, date: r.date),
-              ),
-        ).animate(delay: (30 * index).ms).fadeIn(duration: 300.ms);
-      },
+          onTap: () => showCheckInSheet(context, planId: plan.id, date: r.date),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.page,
+        12,
+        AppSpacing.page,
+        100,
+      ),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder:
+          (context, index) => items[index]
+              .animate(delay: (25 * index).clamp(0, 400).ms)
+              .fadeIn(duration: 300.ms),
     );
+  }
+
+  /// Counts consecutive recorded days walking back from the latest record.
+  static int _streak(List<DateTime> datesDesc) {
+    if (datesDesc.isEmpty) return 0;
+    var streak = 1;
+    for (var i = 1; i < datesDesc.length; i++) {
+      final gap = datesDesc[i - 1].difference(datesDesc[i]).inDays;
+      if (gap == 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
   }
 }
 
 class _SummaryBar extends StatelessWidget {
-  const _SummaryBar({required this.days, required this.totalCalories});
+  const _SummaryBar({
+    required this.days,
+    required this.totalCalories,
+    required this.streak,
+  });
+
   final int days;
   final double totalCalories;
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      color: AppColors.primarySoft,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.primaryGradient,
+        ),
+        borderRadius: AppRadius.cardAll,
+        boxShadow: AppShadows.soft,
+      ),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.xl,
+        horizontal: AppSpacing.md,
+      ),
       child: Row(
         children: [
-          Expanded(child: _stat('$days', '打卡天数', AppColors.primaryDark)),
-          Container(width: 1, height: 32, color: Colors.white),
+          Expanded(child: _stat('$days', '打卡天数')),
+          _divider(),
           Expanded(
-            child: _stat(
-              Formatters.calories(totalCalories),
-              '累计消耗 (千卡)',
-              AppColors.calorie,
-            ),
+            child: _stat(Formatters.calories(totalCalories), '累计消耗 (千卡)'),
           ),
+          _divider(),
+          Expanded(child: _stat('$streak', '连续打卡')),
         ],
       ),
     );
   }
 
-  Widget _stat(String value, String label, Color color) {
+  Widget _divider() => Container(
+    width: 1,
+    height: 36,
+    color: Colors.white.withValues(alpha: 0.4),
+  );
+
+  Widget _stat(String value, String label) {
     return Column(
       children: [
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: color,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm, left: 2),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13.5,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textSecondary,
+          letterSpacing: 0.3,
+        ),
+      ),
     );
   }
 }
@@ -219,6 +294,7 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final allDone = totalTasks > 0 && doneTasks >= totalTasks;
+    final isToday = record.date.isToday;
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -228,25 +304,30 @@ class _HistoryTile extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
-              borderRadius: BorderRadius.circular(14),
+              color: isToday ? AppColors.primarySoft : AppColors.surfaceMuted,
+              borderRadius: AppRadius.smallAll,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   DateFormat('dd').format(record.date),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     height: 1,
+                    color:
+                        isToday ? AppColors.primaryDark : AppColors.textPrimary,
                   ),
                 ),
                 Text(
                   DateFormat('MMM').format(record.date),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textTertiary,
+                    color:
+                        isToday
+                            ? AppColors.primaryDark
+                            : AppColors.textTertiary,
                   ),
                 ),
               ],
@@ -268,7 +349,7 @@ class _HistoryTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      AppDate.shortWeekday(record.date),
+                      '周${AppDate.shortWeekday(record.date)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textTertiary,
@@ -278,7 +359,7 @@ class _HistoryTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Wrap(
-                  spacing: 8,
+                  spacing: 10,
                   runSpacing: 6,
                   children: [
                     _pill(
