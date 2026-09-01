@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
@@ -14,6 +13,7 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../checkin/checkin_sheet.dart';
 import '../settings/settings_controller.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Check-in history: a three-cell summary followed by records grouped by
 /// month.
@@ -35,7 +35,7 @@ class HistoryPage extends ConsumerWidget {
       builder:
           (context, child) => Theme(
             data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(primary: AppColors.primary),
+              colorScheme: ColorScheme.light(primary: context.palette.primary),
             ),
             child: child!,
           ),
@@ -211,7 +211,7 @@ class _PageHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -222,17 +222,17 @@ class _PageHeader extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.4,
                     height: 1.15,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
-                SizedBox(height: AppSpacing.xs),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   '每一次记录，都是向着目标的一步',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                     letterSpacing: -0.22,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -273,29 +273,29 @@ class _SummaryBar extends StatelessWidget {
               value: '$days',
               label: '打卡天数',
               icon: Icons.calendar_today_rounded,
-              tint: AppColors.primary,
+              tint: context.palette.primary,
             ),
             VerticalDivider(
               width: 1,
               thickness: 1,
-              color: AppColors.textPrimary.withValues(alpha: 0.08),
+              color: context.palette.textPrimary.withValues(alpha: 0.08),
             ),
             _Cell(
               value: Formatters.calories(totalCalories),
               label: '累计消耗 (千卡)',
               icon: Icons.local_fire_department_rounded,
-              tint: AppColors.calorie,
+              tint: context.palette.calorie,
             ),
             VerticalDivider(
               width: 1,
               thickness: 1,
-              color: AppColors.textPrimary.withValues(alpha: 0.08),
+              color: context.palette.textPrimary.withValues(alpha: 0.08),
             ),
             _Cell(
               value: '$streak',
               label: '连续打卡',
               icon: Icons.brightness_auto_rounded,
-              tint: AppColors.bodyFat,
+              tint: context.palette.bodyFat,
             ),
           ],
         ),
@@ -338,22 +338,22 @@ class _Cell extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.3,
                 height: 1.15,
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: AppColors.textTertiary,
+                color: context.palette.textTertiary,
               ),
             ),
           ],
@@ -388,7 +388,7 @@ class _StreakMilestone extends StatelessWidget {
         children: [
           // A small glass bead: nested inside the card's pane, so it picks up
           // a second, stronger blur and reads as a solid object.
-          const GlassSurface(
+          GlassSurface(
             radius: 999,
             inset: true,
             width: 44,
@@ -396,7 +396,7 @@ class _StreakMilestone extends StatelessWidget {
             alignment: Alignment.center,
             child: Icon(
               Icons.emoji_events_rounded,
-              color: AppColors.primary,
+              color: context.palette.primary,
               size: 22,
             ),
           ),
@@ -407,11 +407,11 @@ class _StreakMilestone extends StatelessWidget {
               children: [
                 Text(
                   '连续打卡 $streak 天',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.22,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -419,16 +419,16 @@ class _StreakMilestone extends StatelessWidget {
                   streak >= next
                       ? '恭喜！已解锁「$name」徽章'
                       : '距离「$name」徽章还差 ${next - streak} 天',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Container(
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppGlass.fillInset,
+                    color: context.palette.fillInset,
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: FractionallySizedBox(
@@ -436,7 +436,7 @@ class _StreakMilestone extends StatelessWidget {
                     widthFactor: progress,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: context.palette.primary,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -465,11 +465,11 @@ class _MonthHeader extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.4,
-          color: AppColors.textSecondary,
+          color: context.palette.textSecondary,
         ),
       ),
     );
@@ -505,7 +505,7 @@ class _HistoryTile extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: isToday ? AppColors.primarySoft : AppGlass.fillInset,
+              color: isToday ? context.palette.primarySoft : context.palette.fillInset,
               borderRadius: AppRadius.smallAll,
             ),
             child: Column(
@@ -518,7 +518,7 @@ class _HistoryTile extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     height: 1.1,
                     color:
-                        isToday ? AppColors.primary : AppColors.textPrimary,
+                        isToday ? context.palette.primary : context.palette.textPrimary,
                   ),
                 ),
                 Text(
@@ -527,7 +527,7 @@ class _HistoryTile extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color:
-                        isToday ? AppColors.primary : AppColors.textTertiary,
+                        isToday ? context.palette.primary : context.palette.textTertiary,
                   ),
                 ),
               ],
@@ -540,11 +540,11 @@ class _HistoryTile extends StatelessWidget {
               children: [
                 Text(
                   AppDate.relativeLabel(record.date),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.22,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -553,18 +553,18 @@ class _HistoryTile extends StatelessWidget {
                   '${record.bodyFat != null ? ' · 体脂 ${Formatters.bodyFat(record.bodyFat!)}' : ''}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
                 Text(
                   '消耗 ${Formatters.calories(record.caloriesBurned)} 千卡',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textTertiary,
+                    color: context.palette.textTertiary,
                   ),
                 ),
               ],
@@ -578,7 +578,7 @@ class _HistoryTile extends StatelessWidget {
                 vertical: 6,
               ),
               decoration: BoxDecoration(
-                color: allDone ? AppColors.successSoft : AppGlass.fillInset,
+                color: allDone ? context.palette.successSoft : context.palette.fillInset,
                 borderRadius: AppRadius.pillAll,
               ),
               child: Text(
@@ -588,8 +588,8 @@ class _HistoryTile extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   color:
                       allDone
-                          ? AppColors.successText
-                          : AppColors.textTertiary,
+                          ? context.palette.successText
+                          : context.palette.textTertiary,
                 ),
               ),
             ),

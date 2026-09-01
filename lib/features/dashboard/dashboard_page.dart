@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
@@ -16,6 +14,7 @@ import '../../shared/widgets/charts.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../checkin/checkin_sheet.dart';
 import '../settings/settings_controller.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Overview screen.
 ///
@@ -137,11 +136,11 @@ class _Header extends StatelessWidget {
                   '今天 · ${today.month}月${today.day}日 周${AppDate.shortWeekday(today)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     letterSpacing: -0.08,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -149,12 +148,12 @@ class _Header extends StatelessWidget {
                   stats.plan.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.4,
                     height: 1.15,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
               ],
@@ -179,24 +178,24 @@ class _StreakPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.62),
         borderRadius: AppRadius.pillAll,
-        border: Border.all(color: AppGlass.strokeTop),
+        border: Border.all(color: context.palette.strokeTop),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.local_fire_department_rounded,
             size: 16,
-            color: AppColors.calorie,
+            color: context.palette.calorie,
           ),
           const SizedBox(width: AppSpacing.xs),
           Text(
             '连续 $streak 天',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.08,
-              color: AppColors.textPrimary,
+              color: context.palette.textPrimary,
             ),
           ),
         ],
@@ -246,7 +245,7 @@ class _TodayCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       radius: AppRadius.card,
       border:
-          done ? Border.all(color: AppColors.hairline) : null,
+          done ? Border.all(color: context.palette.hairline) : null,
       onTap:
           () => showCheckInSheet(
             context,
@@ -257,7 +256,7 @@ class _TodayCard extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             gradient: done ? null : AppGradients.cta,
-            color: done ? AppColors.surface : null,
+            color: done ? context.palette.surface : null,
             borderRadius: AppRadius.cardAll,
           ),
         child: Row(
@@ -272,7 +271,7 @@ class _TodayCard extends StatelessWidget {
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.37,
-                      color: done ? AppColors.textPrimary : Colors.white,
+                      color: done ? context.palette.textPrimary : Colors.white,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
@@ -285,7 +284,7 @@ class _TodayCard extends StatelessWidget {
                       letterSpacing: -0.08,
                       color:
                           done
-                              ? AppColors.textSecondary
+                              ? context.palette.textSecondary
                               : Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
@@ -311,13 +310,13 @@ class _TodayAction extends StatelessWidget {
       return Container(
         width: 40,
         height: 40,
-        decoration: const BoxDecoration(
-          color: AppColors.successSoft,
+        decoration: BoxDecoration(
+          color: context.palette.successSoft,
           shape: BoxShape.circle,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.check_rounded,
-          color: AppColors.successText,
+          color: context.palette.successText,
           size: 22,
         ),
       );
@@ -331,12 +330,12 @@ class _TodayAction extends StatelessWidget {
         color: Colors.white.withValues(alpha: 0.88),
         borderRadius: AppRadius.pillAll,
       ),
-      child: const Text(
+      child: Text(
         '去打卡',
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: AppColors.primary,
+          color: context.palette.primary,
         ),
       ),
     );
@@ -371,20 +370,20 @@ class _WeightCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
                         _IconWell(
                           icon: Icons.monitor_weight_rounded,
-                          tint: AppColors.weight,
+                          tint: context.palette.weight,
                         ),
-                        SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: AppSpacing.sm),
                         Text(
                           '当前体重',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             letterSpacing: -0.08,
-                            color: AppColors.textSecondary,
+                            color: context.palette.textSecondary,
                           ),
                         ),
                       ],
@@ -397,21 +396,21 @@ class _WeightCard extends StatelessWidget {
                         AnimatedCount(
                           value: unit.fromKg(stats.currentWeight),
                           formatter: (v) => v.toStringAsFixed(1),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 56,
                             fontWeight: FontWeight.w600,
                             letterSpacing: -0.28,
                             height: 1.05,
-                            color: AppColors.textPrimary,
+                            color: context.palette.textPrimary,
                           ),
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         Text(
                           unit.suffix,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
+                            color: context.palette.textSecondary,
                           ),
                         ),
                       ],
@@ -426,15 +425,15 @@ class _WeightCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.successSoft,
+                    color: context.palette.successSoft,
                     borderRadius: AppRadius.pillAll,
                   ),
                   child: Text(
                     '已减 $lostText',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.successText,
+                      color: context.palette.successText,
                     ),
                   ),
                 ),
@@ -446,22 +445,22 @@ class _WeightCard extends StatelessWidget {
             children: [
               Text(
                 '已完成 ${Formatters.percent(stats.progress)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.08,
-                  color: AppColors.primary,
+                  color: context.palette.primary,
                 ),
               ),
               Text(
                 stats.goalReached
                     ? '已达成目标'
                     : '还差 ${Formatters.weight(remaining.abs(), unit)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   letterSpacing: -0.08,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ],
@@ -474,18 +473,18 @@ class _WeightCard extends StatelessWidget {
             children: [
               Text(
                 '起始 ${Formatters.weight(stats.plan.startWeight, unit)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textTertiary,
+                  color: context.palette.textTertiary,
                 ),
               ),
               Text(
                 '目标 ${Formatters.weight(stats.plan.targetWeight, unit)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                 ),
               ),
             ],
@@ -495,11 +494,11 @@ class _WeightCard extends StatelessWidget {
             '距目标 ${Formatters.weight(remaining.abs(), unit)} · '
             '剩余 ${stats.daysRemaining} 天 · '
             '累计完成度 ${Formatters.percent(stats.taskCompletionRate)}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               letterSpacing: -0.12,
-              color: AppColors.textTertiary,
+              color: context.palette.textTertiary,
             ),
           ),
         ],
@@ -523,7 +522,7 @@ class _ProgressBar extends StatelessWidget {
         return Container(
           height: 6,
           decoration: BoxDecoration(
-            color: AppGlass.fillInset,
+            color: context.palette.fillInset,
             borderRadius: BorderRadius.circular(3),
           ),
           child: FractionallySizedBox(
@@ -608,30 +607,30 @@ class _TrendCardState extends State<_TrendCard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Row(
+              Row(
                 children: [
                   _IconWell(
                     icon: Icons.show_chart_rounded,
-                    tint: AppColors.weight,
+                    tint: context.palette.weight,
                   ),
-                  SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     '趋势',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.37,
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                   ),
                 ],
               ),
               Text(
                 _tab == 'calories' ? '近 7 天' : '全程',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textTertiary,
+                  color: context.palette.textTertiary,
                 ),
               ),
             ],
@@ -642,7 +641,7 @@ class _TrendCardState extends State<_TrendCard> {
             width: double.infinity,
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: AppGlass.fillInset,
+              color: context.palette.fillInset,
               borderRadius: BorderRadius.circular(9),
             ),
             child: SegmentedButton<String>(

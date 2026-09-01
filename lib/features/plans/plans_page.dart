@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
@@ -14,6 +13,7 @@ import '../../shared/widgets/app_bottom_sheet.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../settings/settings_controller.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Plan list. The active plan is marked with an accent outline rather than a
 /// gradient ring, and every plan shows the same start → target weight chips
@@ -95,7 +95,7 @@ class _PageHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               '我的计划',
               style: TextStyle(
@@ -103,7 +103,7 @@ class _PageHeader extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.4,
                 height: 1.15,
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
             ),
           ),
@@ -141,21 +141,21 @@ class _PlanCard extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '删除计划',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   '确定删除「${plan.name}」吗？该计划的所有打卡记录都会被移除，此操作不可撤销。',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14.5,
                     height: 1.5,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
@@ -169,7 +169,7 @@ class _PlanCard extends ConsumerWidget {
                     const SizedBox(width: AppSpacing.sm),
                     FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.danger,
+                        backgroundColor: context.palette.danger,
                       ),
                       onPressed: () => Navigator.pop(context, true),
                       child: const Text('删除'),
@@ -224,7 +224,7 @@ class _PlanCard extends ConsumerWidget {
               _ActionRow(
                 icon: Icons.delete_outline_rounded,
                 label: '删除',
-                color: AppColors.danger,
+                color: context.palette.danger,
                 onTap: () {
                   Navigator.pop(context);
                   _confirmDelete(context, ref);
@@ -246,7 +246,7 @@ class _PlanCard extends ConsumerWidget {
 
     return AppCard(
       onTap: plan.isActive ? null : () => _activate(context, ref),
-      border: plan.isActive ? Border.all(color: AppColors.primary, width: 1.5) : null,
+      border: plan.isActive ? Border.all(color: context.palette.primary, width: 1.5) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -261,11 +261,11 @@ class _PlanCard extends ConsumerWidget {
                         plan.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.3,
-                          color: AppColors.textPrimary,
+                          color: context.palette.textPrimary,
                         ),
                       ),
                     ),
@@ -277,15 +277,15 @@ class _PlanCard extends ConsumerWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
+                          color: context.palette.primarySoft,
                           borderRadius: AppRadius.pillAll,
                         ),
-                        child: const Text(
+                        child: Text(
                           '当前',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                            color: context.palette.primary,
                           ),
                         ),
                       ),
@@ -297,9 +297,9 @@ class _PlanCard extends ConsumerWidget {
                 tooltip: '更多操作',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _showActions(context, ref),
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_horiz_rounded,
-                  color: AppColors.textTertiary,
+                  color: context.palette.textTertiary,
                 ),
               ),
             ],
@@ -310,20 +310,20 @@ class _PlanCard extends ConsumerWidget {
             children: [
               Text(
                 '${AppDate.monthDay(plan.startDate)} - ${AppDate.monthDay(plan.endDate)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
                   letterSpacing: -0.08,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
               Text(
                 '已进行 $passed/$totalDays 天',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
                   letterSpacing: -0.08,
-                  color: AppColors.textTertiary,
+                  color: context.palette.textTertiary,
                 ),
               ),
             ],
@@ -336,23 +336,23 @@ class _PlanCard extends ConsumerWidget {
               _weightChip(
                 '起始',
                 plan.startWeight,
-                AppColors.primary,
-                AppColors.primarySoft,
+                context.palette.primary,
+                context.palette.primarySoft,
                 Icons.play_arrow_rounded,
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Icon(
                   Icons.arrow_forward_rounded,
                   size: 16,
-                  color: AppColors.textTertiary,
+                  color: context.palette.textTertiary,
                 ),
               ),
               _weightChip(
                 '目标',
                 plan.targetWeight,
-                AppColors.successText,
-                AppColors.successSoft,
+                context.palette.successText,
+                context.palette.successSoft,
                 Icons.flag_rounded,
               ),
             ],
@@ -415,7 +415,7 @@ class _PlanProgress extends StatelessWidget {
         return Container(
           height: 6,
           decoration: BoxDecoration(
-            color: AppGlass.fillInset,
+            color: context.palette.fillInset,
             borderRadius: BorderRadius.circular(3),
           ),
           child: FractionallySizedBox(
@@ -424,7 +424,7 @@ class _PlanProgress extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 gradient: active ? AppGradients.progress : null,
-                color: active ? null : AppColors.textTertiary,
+                color: active ? null : context.palette.textTertiary,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -450,7 +450,7 @@ class _ActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effective = color ?? AppColors.textPrimary;
+    final effective = color ?? context.palette.textPrimary;
     return ListTile(
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: AppRadius.smallAll),
@@ -458,10 +458,10 @@ class _ActionRow extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: (color ?? AppColors.primary).withValues(alpha: 0.10),
+          color: (color ?? context.palette.primary).withValues(alpha: 0.10),
           borderRadius: AppRadius.chipAll,
         ),
-        child: Icon(icon, size: 20, color: color ?? AppColors.primary),
+        child: Icon(icon, size: 20, color: color ?? context.palette.primary),
       ),
       title: Text(
         label,

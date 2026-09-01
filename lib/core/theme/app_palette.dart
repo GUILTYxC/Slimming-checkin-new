@@ -162,7 +162,7 @@ class AppPalette {
     bodyFatSoft: AppColorsDark.bodyFatSoft,
     fillInset: AppGlassDark.fillInset,
     fillInsetThick: AppGlassDark.fillInsetThick,
-    strokeTop: AppGlassDark.edgeLight.colors.first,
+    strokeTop: AppGlassDark.strokeTop,
   );
 }
 

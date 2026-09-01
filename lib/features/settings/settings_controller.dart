@@ -34,10 +34,15 @@ class SettingsController extends Notifier<AppSettings> {
         prefs.getString(_unitKey) == WeightUnit.lb.name
             ? WeightUnit.lb
             : WeightUnit.kg;
-    final theme =
-        prefs.getString(_themeKey) == ThemeMode.system.name
-            ? ThemeMode.system
-            : ThemeMode.light;
+    final stored = prefs.getString(_themeKey);
+    final ThemeMode theme;
+    if (stored == ThemeMode.dark.name) {
+      theme = ThemeMode.dark;
+    } else if (stored == ThemeMode.system.name) {
+      theme = ThemeMode.system;
+    } else {
+      theme = ThemeMode.light;
+    }
     return AppSettings(weightUnit: unit, themeMode: theme);
   }
 

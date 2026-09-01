@@ -3,11 +3,10 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_glass.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/dashboard_stats.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Smooth weight-trend line with a soft gradient fill and a dashed goal line.
 class WeightLineChart extends StatelessWidget {
@@ -51,7 +50,7 @@ class WeightLineChart extends StatelessWidget {
             drawVerticalLine: false,
             horizontalInterval: yInterval,
             getDrawingHorizontalLine:
-                (_) => const FlLine(color: AppColors.divider, strokeWidth: 1),
+                (_) => FlLine(color: context.palette.divider, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
@@ -77,8 +76,8 @@ class WeightLineChart extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 6),
                     child: Text(
                       value.toStringAsFixed(0),
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
+                      style: TextStyle(
+                        color: context.palette.textTertiary,
                         fontSize: 11,
                       ),
                     ),
@@ -105,8 +104,8 @@ class WeightLineChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       AppDate.monthDay(points[i].date),
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
+                      style: TextStyle(
+                        color: context.palette.textTertiary,
                         fontSize: 10.5,
                       ),
                     ),
@@ -117,7 +116,7 @@ class WeightLineChart extends StatelessWidget {
           ),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (_) => AppColors.surface,
+              getTooltipColor: (_) => context.palette.surface,
               tooltipRoundedRadius: 12,
               tooltipPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
@@ -128,15 +127,15 @@ class WeightLineChart extends StatelessWidget {
                     for (final s in spots)
                       LineTooltipItem(
                         '${AppDate.monthDay(points[s.x.toInt()].date)}\n',
-                        const TextStyle(
-                          color: AppColors.textTertiary,
+                        TextStyle(
+                          color: context.palette.textTertiary,
                           fontSize: 11,
                         ),
                         children: [
                           TextSpan(
                             text: '${s.y.toStringAsFixed(1)} ${unit.suffix}',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: context.palette.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                             ),
@@ -150,14 +149,14 @@ class WeightLineChart extends StatelessWidget {
             horizontalLines: [
               HorizontalLine(
                 y: target,
-                color: AppColors.border,
+                color: context.palette.border,
                 strokeWidth: 1.4,
                 dashArray: [5, 4],
                 label: HorizontalLineLabel(
                   show: true,
                   alignment: Alignment.topRight,
-                  style: const TextStyle(
-                    color: AppColors.textTertiary,
+                  style: TextStyle(
+                    color: context.palette.textTertiary,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -171,7 +170,7 @@ class WeightLineChart extends StatelessWidget {
               spots: spots,
               isCurved: true,
               curveSmoothness: 0.32,
-              color: AppColors.weight,
+              color: context.palette.weight,
               barWidth: 2.6,
               isStrokeCapRound: true,
               // Only the most recent reading gets a dot, so the line stays
@@ -183,7 +182,7 @@ class WeightLineChart extends StatelessWidget {
                 getDotPainter:
                     (spot, _, __, ___) => FlDotCirclePainter(
                       radius: 4.2,
-                      color: AppColors.weight,
+                      color: context.palette.weight,
                       strokeWidth: 2.4,
                       strokeColor: Colors.white,
                     ),
@@ -194,8 +193,8 @@ class WeightLineChart extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.weight.withValues(alpha: 0.22),
-                    AppColors.weight.withValues(alpha: 0.02),
+                    context.palette.weight.withValues(alpha: 0.22),
+                    context.palette.weight.withValues(alpha: 0.02),
                   ],
                 ),
               ),
@@ -227,7 +226,7 @@ class CalorieBarChart extends StatelessWidget {
           alignment: BarChartAlignment.spaceAround,
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => AppColors.surface,
+              getTooltipColor: (_) => context.palette.surface,
               tooltipRoundedRadius: 12,
               tooltipPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
@@ -236,8 +235,8 @@ class CalorieBarChart extends StatelessWidget {
               getTooltipItem:
                   (group, groupIndex, rod, rodIndex) => BarTooltipItem(
                     '${rod.toY.round()} 千卡',
-                    const TextStyle(
-                      color: AppColors.textPrimary,
+                    TextStyle(
+                      color: context.palette.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                     ),
@@ -249,7 +248,7 @@ class CalorieBarChart extends StatelessWidget {
             drawVerticalLine: false,
             horizontalInterval: maxY / 3,
             getDrawingHorizontalLine:
-                (_) => const FlLine(color: AppColors.divider, strokeWidth: 1),
+                (_) => FlLine(color: context.palette.divider, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
@@ -273,8 +272,8 @@ class CalorieBarChart extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 6),
                     child: Text(
                       value.toStringAsFixed(0),
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
+                      style: TextStyle(
+                        color: context.palette.textTertiary,
                         fontSize: 11,
                       ),
                     ),
@@ -295,8 +294,8 @@ class CalorieBarChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       AppDate.shortWeekday(points[i].date),
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
+                      style: TextStyle(
+                        color: context.palette.textTertiary,
                         fontSize: 11,
                       ),
                     ),
@@ -316,11 +315,11 @@ class CalorieBarChart extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(6),
                     ),
-                    color: AppColors.calorie,
+                    color: context.palette.calorie,
                     backDrawRodData: BackgroundBarChartRodData(
                       show: true,
                       toY: maxY,
-                      color: AppGlass.fillInset,
+                      color: context.palette.fillInset,
                     ),
                   ),
                 ],
@@ -344,10 +343,10 @@ class BodyFatLineChart extends StatelessWidget {
     if (points.isEmpty) {
       return SizedBox(
         height: height,
-        child: const Center(
+        child: Center(
           child: Text(
             '打卡时记录体脂率后，这里会显示趋势',
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 12.5),
+            style: TextStyle(color: context.palette.textTertiary, fontSize: 12.5),
           ),
         ),
       );
@@ -376,7 +375,7 @@ class BodyFatLineChart extends StatelessWidget {
             drawVerticalLine: false,
             horizontalInterval: yInterval,
             getDrawingHorizontalLine:
-                (_) => const FlLine(color: AppColors.divider, strokeWidth: 1),
+                (_) => FlLine(color: context.palette.divider, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
@@ -402,8 +401,8 @@ class BodyFatLineChart extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 6),
                     child: Text(
                       Formatters.bodyFat(value, withSuffix: false),
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
+                      style: TextStyle(
+                        color: context.palette.textTertiary,
                         fontSize: 11,
                       ),
                     ),
@@ -430,8 +429,8 @@ class BodyFatLineChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       AppDate.monthDay(points[i].date),
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
+                      style: TextStyle(
+                        color: context.palette.textTertiary,
                         fontSize: 10.5,
                       ),
                     ),
@@ -442,7 +441,7 @@ class BodyFatLineChart extends StatelessWidget {
           ),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (_) => AppColors.surface,
+              getTooltipColor: (_) => context.palette.surface,
               tooltipRoundedRadius: 12,
               tooltipPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
@@ -453,15 +452,15 @@ class BodyFatLineChart extends StatelessWidget {
                     for (final s in spots)
                       LineTooltipItem(
                         '${AppDate.monthDay(points[s.x.toInt()].date)}\n',
-                        const TextStyle(
-                          color: AppColors.textTertiary,
+                        TextStyle(
+                          color: context.palette.textTertiary,
                           fontSize: 11,
                         ),
                         children: [
                           TextSpan(
                             text: Formatters.bodyFat(s.y),
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
+                            style: TextStyle(
+                              color: context.palette.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                             ),
@@ -476,7 +475,7 @@ class BodyFatLineChart extends StatelessWidget {
               spots: spots,
               isCurved: true,
               curveSmoothness: 0.32,
-              color: AppColors.bodyFat,
+              color: context.palette.bodyFat,
               barWidth: 2.6,
               isStrokeCapRound: true,
               // Only the most recent reading gets a dot.
@@ -487,7 +486,7 @@ class BodyFatLineChart extends StatelessWidget {
                 getDotPainter:
                     (spot, _, __, ___) => FlDotCirclePainter(
                       radius: 4.2,
-                      color: AppColors.bodyFat,
+                      color: context.palette.bodyFat,
                       strokeWidth: 2.4,
                       strokeColor: Colors.white,
                     ),
@@ -498,8 +497,8 @@ class BodyFatLineChart extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.bodyFat.withValues(alpha: 0.22),
-                    AppColors.bodyFat.withValues(alpha: 0.02),
+                    context.palette.bodyFat.withValues(alpha: 0.22),
+                    context.palette.bodyFat.withValues(alpha: 0.02),
                   ],
                 ),
               ),

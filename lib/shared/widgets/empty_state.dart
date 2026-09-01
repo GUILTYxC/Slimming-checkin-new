@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Friendly centred placeholder for empty screens.
 ///
@@ -39,28 +39,28 @@ class EmptyState extends StatelessWidget {
               width: 104,
               height: 104,
               alignment: Alignment.center,
-              child: Icon(icon, size: 40, color: AppColors.primary),
+              child: Icon(icon, size: 40, color: context.palette.primary),
             ),
             const SizedBox(height: AppSpacing.xxl),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
-                color: AppColors.textPrimary,
+                color: context.palette.textPrimary,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 height: 1.5,
                 letterSpacing: -0.22,
-                color: AppColors.textSecondary,
+                color: context.palette.textSecondary,
               ),
             ),
             if (action != null) ...[

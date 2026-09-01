@@ -177,6 +177,10 @@ class AppGlassDark {
   /// Inset wells on chrome.
   static const Color fillInsetThick = Color(0x1FFFFFFF);
 
+  /// Bright top edge, for surfaces that draw their own stroke. Dimmer than
+  /// [AppGlass.strokeTop] — see [edgeLight].
+  static const Color strokeTop = Color(0x99FFFFFF);
+
   /// Rim brightness, top → bottom. Same asymmetry as light mode, roughly 40%
   /// lower across the board.
   static const LinearGradient edgeLight = LinearGradient(

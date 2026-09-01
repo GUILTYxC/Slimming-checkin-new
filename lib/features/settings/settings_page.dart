@@ -5,12 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/formatters.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/section_header.dart';
+import '../../core/theme/app_palette.dart';
 import 'settings_controller.dart';
 
 /// Settings: three grouped cards of uniform rows.
@@ -51,8 +51,8 @@ class SettingsPage extends ConsumerWidget {
                     children: [
                       _Row(
                         icon: Icons.straighten_rounded,
-                        tint: AppColors.primary,
-                        tintSoft: AppColors.primarySoft,
+                        tint: context.palette.primary,
+                        tintSoft: context.palette.primarySoft,
                         title: '体重单位',
                         trailing: _UnitToggle(
                           value: settings.weightUnit,
@@ -62,15 +62,12 @@ class SettingsPage extends ConsumerWidget {
                       const Divider(height: 1, indent: 46),
                       _Row(
                         icon: Icons.dark_mode_rounded,
-                        tint: AppColors.textSecondary,
-                        tintSoft: AppGlass.fillInset,
-                        title: '跟随系统外观',
-                        trailing: Switch(
-                          value: settings.themeMode == ThemeMode.system,
-                          onChanged:
-                              (v) => controller.setThemeMode(
-                                v ? ThemeMode.system : ThemeMode.light,
-                              ),
+                        tint: context.palette.textSecondary,
+                        tintSoft: context.palette.fillInset,
+                        title: '外观',
+                        trailing: _AppearancePicker(
+                          value: settings.themeMode,
+                          onChanged: controller.setThemeMode,
                         ),
                       ),
                     ],
@@ -85,8 +82,8 @@ class SettingsPage extends ConsumerWidget {
                     children: [
                       _Row(
                         icon: Icons.ios_share_rounded,
-                        tint: AppColors.primary,
-                        tintSoft: AppColors.primarySoft,
+                        tint: context.palette.primary,
+                        tintSoft: context.palette.primarySoft,
                         title: '导出数据',
                         subtitle: '生成 JSON 并复制到剪贴板',
                         onTap: () => _export(context, ref),
@@ -94,11 +91,11 @@ class SettingsPage extends ConsumerWidget {
                       const Divider(height: 1, indent: 46),
                       _Row(
                         icon: Icons.delete_outline_rounded,
-                        tint: AppColors.danger,
-                        tintSoft: AppColors.dangerSoft,
+                        tint: context.palette.danger,
+                        tintSoft: context.palette.dangerSoft,
                         title: '清空所有数据',
                         subtitle: '删除全部计划与打卡记录',
-                        titleColor: AppColors.danger,
+                        titleColor: context.palette.danger,
                         onTap: () => _clear(context, ref),
                       ),
                     ],
@@ -115,13 +112,13 @@ class SettingsPage extends ConsumerWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: context.palette.primary,
                           borderRadius: AppRadius.smallAll,
                         ),
                         child: const Icon(Icons.eco_rounded, color: Colors.white),
                       ),
                       const SizedBox(width: AppSpacing.md),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -131,16 +128,16 @@ class SettingsPage extends ConsumerWidget {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: -0.24,
-                                color: AppColors.textPrimary,
+                                color: context.palette.textPrimary,
                               ),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
                               '版本 1.4.0 · 数据仅保存在本机',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
-                                color: AppColors.textTertiary,
+                                color: context.palette.textTertiary,
                               ),
                             ),
                           ],
@@ -169,12 +166,12 @@ class SettingsPage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '导出数据',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -226,21 +223,21 @@ class SettingsPage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '清空所有数据',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                const Text(
+                Text(
                   '将删除全部计划、打卡记录与任务，此操作不可撤销。确定继续吗？',
                   style: TextStyle(
                     fontSize: 14.5,
                     height: 1.5,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
@@ -254,7 +251,7 @@ class SettingsPage extends ConsumerWidget {
                     const SizedBox(width: AppSpacing.sm),
                     FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.danger,
+                        backgroundColor: context.palette.danger,
                       ),
                       onPressed: () => Navigator.pop(context, true),
                       child: const Text('清空'),
@@ -281,8 +278,8 @@ class _PageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Text(
         '设置',
         style: TextStyle(
@@ -290,7 +287,7 @@ class _PageHeader extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: -0.4,
           height: 1.15,
-          color: AppColors.textPrimary,
+          color: context.palette.textPrimary,
         ),
       ),
     );
@@ -309,7 +306,7 @@ class _UnitToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.chip),
       ),
       child: Row(
@@ -326,7 +323,7 @@ class _UnitToggle extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: value == u ? AppColors.surface : Colors.transparent,
+                  color: value == u ? context.palette.surface : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -336,8 +333,74 @@ class _UnitToggle extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color:
                         value == u
-                            ? AppColors.primary
-                            : AppColors.textTertiary,
+                            ? context.palette.primary
+                            : context.palette.textTertiary,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Appearance picker: light / dark / follow system.
+///
+/// Deliberately the same shape as [_UnitToggle] — a pill track with a
+/// sliding opaque segment — so the two preference controls read as one family
+/// rather than two different widgets that happen to sit next to each other.
+class _AppearancePicker extends StatelessWidget {
+  const _AppearancePicker({required this.value, required this.onChanged});
+
+  final ThemeMode value;
+  final ValueChanged<ThemeMode> onChanged;
+
+  /// Explicit order — [ThemeMode.values] puts `system` first, which is the
+  /// least useful position for it.
+  static const _modes = [ThemeMode.light, ThemeMode.dark, ThemeMode.system];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: context.palette.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final mode in _modes)
+            GestureDetector(
+              onTap: () => onChanged(mode),
+              child: AnimatedContainer(
+                duration: AppMotion.fast,
+                curve: AppMotion.emphasized,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color:
+                      value == mode
+                          ? context.palette.surface
+                          : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  switch (mode) {
+                    ThemeMode.light => '浅色',
+                    ThemeMode.dark => '深色',
+                    ThemeMode.system => '系统',
+                  },
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        value == mode
+                            ? context.palette.primary
+                            : context.palette.textTertiary,
                   ),
                 ),
               ),
@@ -402,17 +465,17 @@ class _Row extends StatelessWidget {
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.24,
-                      color: titleColor ?? AppColors.textPrimary,
+                      color: titleColor ?? context.palette.textPrimary,
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: AppColors.textTertiary,
+                        color: context.palette.textTertiary,
                       ),
                     ),
                   ],
@@ -425,7 +488,7 @@ class _Row extends StatelessWidget {
               Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
-                color: (titleColor ?? AppColors.textTertiary).withValues(
+                color: (titleColor ?? context.palette.textTertiary).withValues(
                   alpha: 0.7,
                 ),
               ),

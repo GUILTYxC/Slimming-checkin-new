@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../dashboard/dashboard_page.dart';
 import '../history/history_page.dart';
 import '../plans/plans_page.dart';
 import '../settings/settings_page.dart';
+import '../../core/theme/app_palette.dart';
 
 /// App shell holding the four top-level destinations.
 ///
@@ -155,7 +155,7 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? Colors.white : AppColors.textTertiary;
+    final color = selected ? Colors.white : context.palette.textTertiary;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -165,7 +165,7 @@ class _TabItem extends StatelessWidget {
           duration: AppMotion.fast,
           curve: AppMotion.emphasized,
           decoration: BoxDecoration(
-            color: selected ? AppColors.primary : Colors.transparent,
+            color: selected ? context.palette.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(26),
           ),
           child: Column(
@@ -215,7 +215,7 @@ class _SideRail extends StatelessWidget {
           onDestinationSelected: onSelect,
           backgroundColor: Colors.transparent,
           labelType: NavigationRailLabelType.all,
-          indicatorColor: AppColors.primary,
+          indicatorColor: context.palette.primary,
           groupAlignment: -0.85,
           leading: Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
@@ -223,23 +223,23 @@ class _SideRail extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: context.palette.primary,
                 borderRadius: AppRadius.smallAll,
               ),
               child: const Icon(Icons.eco_rounded, color: Colors.white),
             ),
           ),
           selectedIconTheme: const IconThemeData(color: Colors.white),
-          unselectedIconTheme: const IconThemeData(
-            color: AppColors.textTertiary,
+          unselectedIconTheme: IconThemeData(
+            color: context.palette.textTertiary,
           ),
-          selectedLabelTextStyle: const TextStyle(
-            color: AppColors.primary,
+          selectedLabelTextStyle: TextStyle(
+            color: context.palette.primary,
             fontWeight: FontWeight.w700,
             fontSize: 12,
           ),
-          unselectedLabelTextStyle: const TextStyle(
-            color: AppColors.textTertiary,
+          unselectedLabelTextStyle: TextStyle(
+            color: context.palette.textTertiary,
             fontSize: 12,
           ),
           destinations: [

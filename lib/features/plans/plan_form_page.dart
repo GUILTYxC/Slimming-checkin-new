@@ -3,14 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/task_input.dart';
 import '../../shared/widgets/app_card.dart';
 import '../settings/settings_controller.dart';
+import '../../core/theme/app_palette.dart';
 
 class PlanFormPage extends ConsumerStatefulWidget {
   const PlanFormPage({super.key, this.planId});
@@ -104,7 +103,7 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
       builder:
           (context, child) => Theme(
             data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(primary: AppColors.primary),
+              colorScheme: ColorScheme.light(primary: context.palette.primary),
             ),
             child: child!,
           ),
@@ -318,9 +317,9 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.drag_indicator_rounded,
-                color: AppColors.textTertiary,
+                color: context.palette.textTertiary,
                 size: 20,
               ),
               const SizedBox(width: 6),
@@ -339,7 +338,7 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                         ? null
                         : () => setState(() => _tasks.removeAt(i)),
                 icon: const Icon(Icons.remove_circle_outline_rounded),
-                color: AppColors.textTertiary,
+                color: context.palette.textTertiary,
               ),
             ],
           ),
@@ -381,19 +380,19 @@ class _SectionTitle extends StatelessWidget {
           width: 30,
           height: 30,
           decoration: BoxDecoration(
-            color: AppColors.primarySoft,
+            color: context.palette.primarySoft,
             borderRadius: AppRadius.chipAll,
           ),
-          child: Icon(icon, size: 17, color: AppColors.primaryDark),
+          child: Icon(icon, size: 17, color: context.palette.primaryDark),
         ),
         const SizedBox(width: 10),
         Flexible(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15.5,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              color: context.palette.textPrimary,
             ),
           ),
         ),
@@ -418,14 +417,14 @@ class _DateField extends StatelessWidget {
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      color: AppGlass.fillInset,
+      color: context.palette.fillInset,
       radius: 14,
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.calendar_today_rounded,
             size: 18,
-            color: AppColors.primaryDark,
+            color: context.palette.primaryDark,
           ),
           const SizedBox(width: 10),
           Column(
@@ -433,9 +432,9 @@ class _DateField extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
               const SizedBox(height: 2),

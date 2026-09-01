@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
@@ -15,6 +14,7 @@ import '../../shared/widgets/app_bottom_sheet.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../settings/settings_controller.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Opens the daily check-in form as a modal bottom sheet and shows a light
 /// confirmation when the record was saved.
@@ -236,8 +236,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                   Expanded(
                     child: _MetricField(
                       icon: Icons.monitor_weight_rounded,
-                      accent: AppColors.weight,
-                      accentSoft: AppColors.weightSoft,
+                      accent: context.palette.weight,
+                      accentSoft: context.palette.weightSoft,
                       label: '今日体重',
                       suffix: unit.suffix,
                       controller: _weightCtrl,
@@ -247,8 +247,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                   Expanded(
                     child: _MetricField(
                       icon: Icons.percent_rounded,
-                      accent: AppColors.bodyFat,
-                      accentSoft: AppColors.bodyFatSoft,
+                      accent: context.palette.bodyFat,
+                      accentSoft: context.palette.bodyFatSoft,
                       label: '体脂率',
                       suffix: '%',
                       controller: _bodyFatCtrl,
@@ -259,8 +259,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
               const SizedBox(height: AppSpacing.md),
               _MetricField(
                 icon: Icons.local_fire_department_rounded,
-                accent: AppColors.calorie,
-                accentSoft: AppColors.calorieSoft,
+                accent: context.palette.calorie,
+                accentSoft: context.palette.calorieSoft,
                 label: '消耗',
                 suffix: '千卡',
                 controller: _caloriesCtrl,
@@ -272,21 +272,21 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       '今日任务',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.37,
-                        color: AppColors.textPrimary,
+                        color: context.palette.textPrimary,
                       ),
                     ),
                     Text(
                       '$_doneCount/${_tasks.length}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        color: context.palette.primary,
                       ),
                     ),
                   ],
@@ -300,8 +300,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                             ? 0
                             : (_doneCount / _tasks.length).clamp(0.0, 1.0),
                     minHeight: 6,
-                    backgroundColor: AppGlass.fillInset,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                    backgroundColor: context.palette.fillInset,
+                    valueColor: AlwaysStoppedAnimation(context.palette.primary),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -330,9 +330,9 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
         ),
         // Pinned save bar.
         Container(
-          decoration: const BoxDecoration(
-            color: Color(0x8CFFFFFF),
-            border: Border(top: BorderSide(color: AppGlass.strokeTop, width: 1)),
+          decoration: BoxDecoration(
+            color: const Color(0x8CFFFFFF),
+            border: Border(top: BorderSide(color: context.palette.strokeTop, width: 1)),
           ),
           padding: EdgeInsets.fromLTRB(
             AppSpacing.page,
@@ -345,9 +345,9 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
             child: FilledButton(
               onPressed: (_saving || _saved) ? null : _save,
               style: FilledButton.styleFrom(
-                backgroundColor: _saved ? AppColors.success : AppColors.primary,
+                backgroundColor: _saved ? context.palette.success : context.palette.primary,
                 disabledBackgroundColor:
-                    _saved ? AppColors.success : AppColors.primaryContainer,
+                    _saved ? context.palette.success : context.palette.primaryContainer,
                 disabledForegroundColor: Colors.white,
               ),
               child: AnimatedSwitcher(
@@ -399,10 +399,10 @@ class _SheetHeader extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.primarySoft,
+              color: context.palette.primarySoft,
               borderRadius: AppRadius.smallAll,
             ),
-            child: const Icon(Icons.today_rounded, color: AppColors.primary),
+            child: Icon(Icons.today_rounded, color: context.palette.primary),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -411,20 +411,20 @@ class _SheetHeader extends StatelessWidget {
               children: [
                 Text(
                   isToday ? '今日打卡' : '${AppDate.relativeLabel(date)}补记',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.3,
-                    color: AppColors.textPrimary,
+                    color: context.palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${date.month}月${date.day}日 · 周${AppDate.shortWeekday(date)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -433,10 +433,10 @@ class _SheetHeader extends StatelessWidget {
           IconButton(
             tooltip: '关闭',
             onPressed: () => Navigator.of(context).pop(),
-            style: IconButton.styleFrom(backgroundColor: AppGlass.fillInset),
-            icon: const Icon(
+            style: IconButton.styleFrom(backgroundColor: context.palette.fillInset),
+            icon: Icon(
               Icons.close_rounded,
-              color: AppColors.textSecondary,
+              color: context.palette.textSecondary,
               size: 20,
             ),
           ),
@@ -494,7 +494,7 @@ class _MetricFieldState extends State<_MetricField> {
         color: Colors.white.withValues(alpha: 0.55),
         borderRadius: AppRadius.smallAll,
         border: Border.all(
-          color: focused ? AppColors.primary : AppGlass.strokeTop,
+          color: focused ? context.palette.primary : context.palette.strokeTop,
           width: 1.6,
         ),
       ),
@@ -517,11 +517,11 @@ class _MetricFieldState extends State<_MetricField> {
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   widget.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     letterSpacing: -0.08,
-                    color: AppColors.textSecondary,
+                    color: context.palette.textSecondary,
                   ),
                 ),
               ],
@@ -543,12 +543,12 @@ class _MetricFieldState extends State<_MetricField> {
                         RegExp(widget.allowDecimal ? r'[0-9.]' : r'[0-9]'),
                       ),
                     ],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
                       height: 1.15,
-                      color: AppColors.textPrimary,
+                      color: context.palette.textPrimary,
                     ),
                     decoration: const InputDecoration(
                       isCollapsed: true,
@@ -563,10 +563,10 @@ class _MetricFieldState extends State<_MetricField> {
                 const SizedBox(width: AppSpacing.xs),
                 Text(
                   widget.suffix,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textTertiary,
+                    color: context.palette.textTertiary,
                   ),
                 ),
               ],
@@ -607,10 +607,10 @@ class _TaskRow extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: completed ? AppColors.primary : Colors.transparent,
+                color: completed ? context.palette.primary : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: completed ? AppColors.primary : AppColors.border,
+                  color: completed ? context.palette.primary : context.palette.border,
                   width: 1.6,
                 ),
               ),
@@ -633,11 +633,11 @@ class _TaskRow extends StatelessWidget {
                   letterSpacing: -0.24,
                   color:
                       completed
-                          ? AppColors.textTertiary
-                          : AppColors.textPrimary,
+                          ? context.palette.textTertiary
+                          : context.palette.textPrimary,
                   decoration:
                       completed ? TextDecoration.lineThrough : null,
-                  decorationColor: AppColors.textTertiary,
+                  decorationColor: context.palette.textTertiary,
                 ),
                 child: Text(title),
               ),
@@ -686,32 +686,32 @@ class _CelebrationDialogState extends State<_CelebrationDialog> {
               Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
-                  color: AppColors.successSoft,
+                decoration: BoxDecoration(
+                  color: context.palette.successSoft,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_rounded,
-                  color: AppColors.successText,
+                  color: context.palette.successText,
                   size: 34,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text(
+              Text(
                 '今日任务全部完成',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
-                  color: AppColors.textPrimary,
+                  color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
-              const Text(
+              Text(
                 '坚持就是胜利，继续加油',
                 style: TextStyle(
                   fontSize: 13.5,
-                  color: AppColors.textSecondary,
+                  color: context.palette.textSecondary,
                 ),
               ),
             ],

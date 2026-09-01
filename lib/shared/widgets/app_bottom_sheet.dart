@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Presents [child] as a modal bottom sheet with the app's signature rounded
 /// top corners, drag handle and spring-like entrance.
@@ -60,7 +60,7 @@ class AppBottomSheet extends StatelessWidget {
                   width: 36,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.palette.border,
                     borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),

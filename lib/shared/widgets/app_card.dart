@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/app_palette.dart';
 
 /// Resting card surface — a pane of frosted glass over the aurora backdrop.
 ///
@@ -69,8 +69,8 @@ class _AppCardState extends State<AppCard> {
           onTap: widget.onTap,
           onHighlightChanged: _setPressed,
           borderRadius: br,
-          splashColor: AppColors.primary.withValues(alpha: 0.08),
-          highlightColor: AppColors.primary.withValues(alpha: 0.05),
+          splashColor: context.palette.primary.withValues(alpha: 0.08),
+          highlightColor: context.palette.primary.withValues(alpha: 0.05),
           child: content,
         ),
       );
@@ -88,11 +88,11 @@ class _AppCardState extends State<AppCard> {
             : AnimatedContainer(
               duration: AppMotion.press,
               decoration: BoxDecoration(
-                color: widget.color ?? AppColors.surface,
+                color: widget.color ?? context.palette.surface,
                 borderRadius: br,
                 boxShadow:
                     _pressed ? const [] : (widget.shadow ?? AppShadows.soft),
-                border: widget.border ?? Border.all(color: AppColors.hairline),
+                border: widget.border ?? Border.all(color: context.palette.hairline),
               ),
               child: content,
             );
