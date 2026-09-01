@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
+import '../../core/theme/app_tokens.dart';
 
 /// Friendly centred placeholder for empty screens.
+///
+/// Uses the single accent tint so an empty screen still has one focal point,
+/// and always pairs the message with an action so the user knows the next
+/// step.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -21,39 +27,46 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 96,
-              height: 96,
-              decoration: const BoxDecoration(
-                color: AppColors.primarySoft,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 44, color: AppColors.primaryDark),
+            // A sphere of glass rather than a flat tinted circle: it blurs
+            // whatever aurora wash sits behind it, so the empty state picks
+            // up the colour of wherever it happens to land on screen.
+            GlassSurface(
+              radius: 999,
+              width: 104,
+              height: 104,
+              alignment: Alignment.center,
+              child: Icon(icon, size: 40, color: AppColors.primary),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: AppSpacing.xxl),
             Text(
               title,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 14.5,
+                fontSize: 14,
                 height: 1.5,
+                letterSpacing: -0.22,
                 color: AppColors.textSecondary,
               ),
             ),
-            if (action != null) ...[const SizedBox(height: 24), action!],
+            if (action != null) ...[
+              const SizedBox(height: AppSpacing.xxl),
+              action!,
+            ],
           ],
         ),
       ),

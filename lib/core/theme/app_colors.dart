@@ -1,55 +1,85 @@
 import 'package:flutter/material.dart';
 
-/// Central colour palette for the app. Light, clean and calm.
+/// Central colour palette for the app.
+///
+/// The system is deliberately small so every screen converges on the same
+/// look:
+/// * one accent colour ([primary]) for anything tappable,
+/// * four neutral greys for structure and text,
+/// * three data colours used **only** inside charts and metric labels.
+///
+/// There are no decorative gradients left in the app — depth comes from
+/// the #F5F5F7 canvas, hairline dividers and typographic weight.
 class AppColors {
   AppColors._();
 
-  // Surfaces — a whisper of mint in the background makes white cards float.
-  static const Color background = Color(0xFFF4F9F7);
+  // ── Surfaces ────────────────────────────────────────────────────────────
+  /// Page background. White cards sit on this so they read as raised without
+  /// needing a shadow.
+  static const Color canvas = Color(0xFFF5F5F7);
+
+  /// Card / sheet background.
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceMuted = Color(0xFFEFF5F2);
 
-  // Brand
-  static const Color primary = Color(0xFF2ED3B7); // mint / health
-  static const Color primaryDark = Color(0xFF1FB49B);
-  static const Color primarySoft = Color(0xFFE4F8F4);
-  static const Color primaryContainer = Color(0xFFCBF2EA);
+  /// Inset areas inside a card (chips, icon wells, progress tracks).
+  static const Color surfaceMuted = Color(0xFFF5F5F7);
 
-  // Semantic accents
-  static const Color weight = Color(0xFF4E7CFF); // weight blue
-  static const Color weightSoft = Color(0xFFE8EEFF);
-  static const Color calorie = Color(0xFFFF7A5A); // calorie coral
-  static const Color calorieSoft = Color(0xFFFFEDE7);
-  static const Color bodyFat = Color(0xFF9B6DFF); // body-fat purple
-  static const Color bodyFatSoft = Color(0xFFF1EAFF);
-  static const Color success = Color(0xFF34C77B);
-  static const Color warning = Color(0xFFFFB020);
-  static const Color danger = Color(0xFFF5455C);
+  /// Legacy name kept so older widgets keep compiling.
+  static const Color background = canvas;
 
-  // Text
-  static const Color textPrimary = Color(0xFF1A1D1F);
-  static const Color textSecondary = Color(0xFF6F767E);
-  static const Color textTertiary = Color(0xFF9A9FA5);
+  // ── Text ────────────────────────────────────────────────────────────────
+  static const Color textPrimary = Color(0xFF1D1D1F);
+  static const Color textSecondary = Color(0xFF6E6E73);
+  static const Color textTertiary = Color(0xFF86868B);
 
-  // Lines
-  static const Color border = Color(0xFFE9EDF1);
-  static const Color divider = Color(0xFFEFF2F5);
+  /// Only for de-emphasised meta text such as chart axis labels.
+  static const Color textQuaternary = Color(0xFFA0A0A5);
 
-  // Gradients
-  static const List<Color> primaryGradient = [
-    Color(0xFF3EE0C4),
-    Color(0xFF1FB49B),
-  ];
-  static const List<Color> weightGradient = [
-    Color(0xFF6E96FF),
-    Color(0xFF4E7CFF),
-  ];
-  static const List<Color> calorieGradient = [
-    Color(0xFFFF9C7E),
-    Color(0xFFFF7A5A),
-  ];
-  static const List<Color> bodyFatGradient = [
-    Color(0xFFB48DFF),
-    Color(0xFF9B6DFF),
-  ];
+  // ── Lines ───────────────────────────────────────────────────────────────
+  /// Divider inside a white card.
+  static const Color hairline = Color(0xFFE5E5EA);
+
+  /// Extremely light separator used inside dense lists.
+  static const Color divider = Color(0xFFF0F0F0);
+
+  /// Outline for controls that need an edge (inputs, pill tab bar).
+  static const Color border = Color(0xFFD2D2D7);
+
+  // ── Brand: the single accent colour ─────────────────────────────────────
+  static const Color primary = Color(0xFF0066CC);
+  static const Color primaryFocus = Color(0xFF0071E3);
+
+  /// Pressed / on-light text variant of the accent.
+  static const Color primaryDark = Color(0xFF004F9E);
+
+  /// Tinted accent background (icon wells, selected chips).
+  static const Color primarySoft = Color(0xFFEBF3FC);
+  static const Color primaryContainer = Color(0xFFD6E6FA);
+
+  // ── Semantic ────────────────────────────────────────────────────────────
+  static const Color success = Color(0xFF34C759);
+
+  /// Green is only legible on white below ~#34C759, so text uses this darker
+  /// shade while fills use [success].
+  static const Color successText = Color(0xFF248A3D);
+  static const Color successSoft = Color(0xFFE3F5E8);
+
+  static const Color warning = Color(0xFFFF9500);
+  static const Color warningSoft = Color(0xFFFFF2E5);
+
+  static const Color danger = Color(0xFFD70015);
+  static const Color dangerSoft = Color(0xFFFFF2F2);
+
+  // ── Data colours (charts and metric labels only) ────────────────────────
+  /// Weight — the app's hero metric, so it shares the accent blue.
+  static const Color weight = Color(0xFF0066CC);
+  static const Color weightSoft = Color(0xFFEBF3FC);
+
+  /// Calories burned.
+  static const Color calorie = Color(0xFFFF9500);
+  static const Color calorieSoft = Color(0xFFFFF2E5);
+
+  /// Body-fat percentage.
+  static const Color bodyFat = Color(0xFF5856D6);
+  static const Color bodyFatSoft = Color(0xFFEEEDFC);
 }

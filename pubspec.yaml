@@ -1,7 +1,7 @@
 name: slimming_checkin
 description: "A cross-platform (macOS / Android / Windows) weight-loss check-in app with a clean, light UI and delightful motion."
 publish_to: "none"
-version: 1.2.0+4
+version: 1.4.0+7
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
@@ -57,3 +57,5 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  config:
+    enable-swift-package-manager: false

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
@@ -14,6 +15,12 @@ import '../../shared/widgets/empty_state.dart';
 import '../checkin/checkin_sheet.dart';
 import '../settings/settings_controller.dart';
 
+/// Check-in history: a three-cell summary followed by records grouped by
+/// month.
+///
+/// The summary uses hairline dividers inside a single card instead of three
+/// competing coloured cards, and each record row keeps only the numbers that
+/// matter.
 class HistoryPage extends ConsumerWidget {
   const HistoryPage({super.key});
 
@@ -44,47 +51,47 @@ class HistoryPage extends ConsumerWidget {
     final unit = ref.watch(settingsProvider.select((s) => s.weightUnit));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('打卡历史'),
-        actions: [
-          planAsync.maybeWhen(
-            data:
-                (plan) =>
-                    plan == null
-                        ? const SizedBox.shrink()
-                        : IconButton(
-                          tooltip: '补记',
-                          onPressed: () => _backfill(context, plan),
-                          icon: const Icon(Icons.edit_calendar_rounded),
-                        ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      body: planAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('出错了：$e')),
-        data: (plan) {
-          if (plan == null) {
-            return const EmptyState(
-              icon: Icons.calendar_month_rounded,
-              title: '暂无历史',
-              message: '创建计划并开始打卡后，你的每日记录会显示在这里。',
-            );
-          }
-          return _HistoryList(plan: plan, unit: unit);
-        },
+      body: SafeArea(
+        bottom: false,
+        child: planAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error:
+              (e, _) => EmptyState(
+                icon: Icons.cloud_off_rounded,
+                title: '数据加载失败',
+                message: '没能读取本地数据，请重试。\n$e',
+                action: FilledButton.icon(
+                  onPressed: () => ref.invalidate(activePlanProvider),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('重试'),
+                ),
+              ),
+          data: (plan) {
+            if (plan == null) {
+              return const EmptyState(
+                icon: Icons.calendar_month_rounded,
+                title: '暂无历史',
+                message: '创建计划并开始打卡后，你的每日记录会显示在这里。',
+              );
+            }
+            return _HistoryList(plan: plan, unit: unit, onBackfill: () => _backfill(context, plan));
+          },
+        ),
       ),
     );
   }
 }
 
 class _HistoryList extends ConsumerWidget {
-  const _HistoryList({required this.plan, required this.unit});
+  const _HistoryList({
+    required this.plan,
+    required this.unit,
+    required this.onBackfill,
+  });
 
   final Plan plan;
   final WeightUnit unit;
+  final VoidCallback onBackfill;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -126,13 +133,15 @@ class _HistoryList extends ConsumerWidget {
     );
     final streak = _streak(sorted.map((r) => r.date).toList());
 
-    // Flatten the list into: summary card, then month header + tiles.
+    // Flatten the list into: title, summary card, then month header + rows.
     final items = <Widget>[
+      _PageHeader(onBackfill: onBackfill),
       _SummaryBar(
         days: records.length,
         totalCalories: totalCalories,
         streak: streak,
       ),
+      _StreakMilestone(streak: streak),
     ];
     String? lastMonth;
     for (final r in sorted) {
@@ -152,19 +161,25 @@ class _HistoryList extends ConsumerWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.page,
-        12,
-        AppSpacing.page,
-        100,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: ListView.separated(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.page,
+            AppSpacing.sm,
+            AppSpacing.page,
+            120,
+          ),
+          itemCount: items.length,
+          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+          itemBuilder:
+              (context, index) => items[index]
+                  .animate(delay: (25 * index).clamp(0, 400).ms)
+                  .fadeIn(duration: 300.ms),
+        ),
       ),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder:
-          (context, index) => items[index]
-              .animate(delay: (25 * index).clamp(0, 400).ms)
-              .fadeIn(duration: 300.ms),
     );
   }
 
@@ -184,6 +199,57 @@ class _HistoryList extends ConsumerWidget {
   }
 }
 
+/// Screen title shared with the other four screens: same 28/700 size.
+class _PageHeader extends StatelessWidget {
+  const _PageHeader({required this.onBackfill});
+  final VoidCallback onBackfill;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '打卡历史',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                    height: 1.15,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: AppSpacing.xs),
+                Text(
+                  '每一次记录，都是向着目标的一步',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.22,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: onBackfill,
+            icon: const Icon(Icons.edit_calendar_rounded, size: 18),
+            label: const Text('补记'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Three stats in one card, separated by hairlines.
 class _SummaryBar extends StatelessWidget {
   const _SummaryBar({
     required this.days,
@@ -197,60 +263,190 @@ class _SummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: AppColors.primaryGradient,
+    return AppCard(
+      padding: EdgeInsets.zero,
+      clip: true,
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            _Cell(
+              value: '$days',
+              label: '打卡天数',
+              icon: Icons.calendar_today_rounded,
+              tint: AppColors.primary,
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: AppColors.textPrimary.withValues(alpha: 0.08),
+            ),
+            _Cell(
+              value: Formatters.calories(totalCalories),
+              label: '累计消耗 (千卡)',
+              icon: Icons.local_fire_department_rounded,
+              tint: AppColors.calorie,
+            ),
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: AppColors.textPrimary.withValues(alpha: 0.08),
+            ),
+            _Cell(
+              value: '$streak',
+              label: '连续打卡',
+              icon: Icons.brightness_auto_rounded,
+              tint: AppColors.bodyFat,
+            ),
+          ],
         ),
-        borderRadius: AppRadius.cardAll,
-        boxShadow: AppShadows.soft,
-      ),
-      padding: const EdgeInsets.symmetric(
-        vertical: AppSpacing.xl,
-        horizontal: AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _stat('$days', '打卡天数')),
-          _divider(),
-          Expanded(
-            child: _stat(Formatters.calories(totalCalories), '累计消耗 (千卡)'),
-          ),
-          _divider(),
-          Expanded(child: _stat('$streak', '连续打卡')),
-        ],
       ),
     );
   }
+}
 
-  Widget _divider() => Container(
-    width: 1,
-    height: 36,
-    color: Colors.white.withValues(alpha: 0.4),
-  );
+class _Cell extends StatelessWidget {
+  const _Cell({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.tint,
+  });
+  final String value;
+  final String label;
+  final IconData icon;
+  final Color tint;
 
-  Widget _stat(String value, String label) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.lg,
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.9),
-          ),
+        child: Column(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: tint),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.3,
+                height: 1.15,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+/// Shows the next streak milestone so the achievement system is visible
+/// without crowding the dashboard.
+class _StreakMilestone extends StatelessWidget {
+  const _StreakMilestone({required this.streak});
+  final int streak;
+
+  @override
+  Widget build(BuildContext context) {
+    const milestones = [3, 7, 21, 66];
+    const names = ['启程', '一周', '习惯', '蜕变'];
+
+    var nextIndex = milestones.indexWhere((m) => streak < m);
+    nextIndex = nextIndex == -1 ? milestones.length - 1 : nextIndex;
+    final next = milestones[nextIndex];
+    final name = names[nextIndex];
+    final prev = nextIndex > 0 ? milestones[nextIndex - 1] : 0;
+    final progress = next == prev
+        ? 1.0
+        : ((streak - prev) / (next - prev)).clamp(0.0, 1.0);
+
+    return AppCard(
+      child: Row(
+        children: [
+          // A small glass bead: nested inside the card's pane, so it picks up
+          // a second, stronger blur and reads as a solid object.
+          const GlassSurface(
+            radius: 999,
+            inset: true,
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.emoji_events_rounded,
+              color: AppColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '连续打卡 $streak 天',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.22,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  streak >= next
+                      ? '恭喜！已解锁「$name」徽章'
+                      : '距离「$name」徽章还差 ${next - streak} 天',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppGlass.fillInset,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -262,14 +458,18 @@ class _MonthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.sm, left: 2),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.sm,
+        left: 2,
+        bottom: 2,
+      ),
       child: Text(
         label,
         style: const TextStyle(
-          fontSize: 13.5,
-          fontWeight: FontWeight.w800,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
           color: AppColors.textSecondary,
-          letterSpacing: 0.3,
         ),
       ),
     );
@@ -296,15 +496,16 @@ class _HistoryTile extends StatelessWidget {
     final allDone = totalTasks > 0 && doneTasks >= totalTasks;
     final isToday = record.date.isToday;
     return AppCard(
+      radius: AppRadius.small,
+      padding: const EdgeInsets.all(AppSpacing.md),
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           Container(
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: isToday ? AppColors.primarySoft : AppColors.surfaceMuted,
+              color: isToday ? AppColors.primarySoft : AppGlass.fillInset,
               borderRadius: AppRadius.smallAll,
             ),
             child: Column(
@@ -314,133 +515,86 @@ class _HistoryTile extends StatelessWidget {
                   DateFormat('dd').format(record.date),
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
                     color:
-                        isToday ? AppColors.primaryDark : AppColors.textPrimary,
+                        isToday ? AppColors.primary : AppColors.textPrimary,
                   ),
                 ),
                 Text(
-                  DateFormat('MMM').format(record.date),
+                  '${record.date.month}月',
                   style: TextStyle(
                     fontSize: 11,
+                    fontWeight: FontWeight.w500,
                     color:
-                        isToday
-                            ? AppColors.primaryDark
-                            : AppColors.textTertiary,
+                        isToday ? AppColors.primary : AppColors.textTertiary,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      AppDate.relativeLabel(record.date),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '周${AppDate.shortWeekday(record.date)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ],
+                Text(
+                  AppDate.relativeLabel(record.date),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.22,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 6,
-                  children: [
-                    _pill(
-                      Icons.monitor_weight_rounded,
-                      record.weight != null
-                          ? Formatters.weight(record.weight!, unit)
-                          : '未记录',
-                      AppColors.weight,
-                    ),
-                    if (record.bodyFat != null)
-                      _pill(
-                        Icons.percent_rounded,
-                        Formatters.bodyFat(record.bodyFat!),
-                        AppColors.bodyFat,
-                      ),
-                    _pill(
-                      Icons.local_fire_department_rounded,
-                      '${Formatters.calories(record.caloriesBurned)} 千卡',
-                      AppColors.calorie,
-                    ),
-                  ],
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '${record.weight != null ? Formatters.weight(record.weight!, unit) : '未记录'}'
+                  '${record.bodyFat != null ? ' · 体脂 ${Formatters.bodyFat(record.bodyFat!)}' : ''}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  '消耗 ${Formatters.calories(record.caloriesBurned)} 千卡',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           if (totalTasks > 0)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: allDone ? AppColors.primarySoft : AppColors.surfaceMuted,
-                borderRadius: BorderRadius.circular(20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 6,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    allDone
-                        ? Icons.check_circle_rounded
-                        : Icons.check_circle_outline_rounded,
-                    size: 15,
-                    color:
-                        allDone
-                            ? AppColors.primaryDark
-                            : AppColors.textTertiary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$doneTasks/$totalTasks',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color:
-                          allDone
-                              ? AppColors.primaryDark
-                              : AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+              decoration: BoxDecoration(
+                color: allDone ? AppColors.successSoft : AppGlass.fillInset,
+                borderRadius: AppRadius.pillAll,
+              ),
+              child: Text(
+                '$doneTasks/$totalTasks',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color:
+                      allDone
+                          ? AppColors.successText
+                          : AppColors.textTertiary,
+                ),
               ),
             ),
         ],
       ),
-    );
-  }
-
-  Widget _pill(IconData icon, String text, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 12.5,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

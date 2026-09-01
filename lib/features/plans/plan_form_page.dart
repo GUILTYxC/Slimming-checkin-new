@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
@@ -417,7 +418,7 @@ class _DateField extends StatelessWidget {
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      color: AppColors.surfaceMuted,
+      color: AppGlass.fillInset,
       radius: 14,
       child: Row(
         children: [

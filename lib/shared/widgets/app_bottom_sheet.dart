@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 
 /// Presents [child] as a modal bottom sheet with the app's signature rounded
@@ -45,13 +46,10 @@ class AppBottomSheet extends StatelessWidget {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
+      child: GlassSurface(
+        thickness: GlassThickness.thick,
+        borderRadius: AppRadius.sheetTop,
         constraints: BoxConstraints(maxHeight: maxHeight),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadius.sheetTop,
-          boxShadow: AppShadows.bar,
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -59,11 +57,11 @@ class AppBottomSheet extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.md, bottom: 2),
                 child: Container(
-                  width: 40,
-                  height: 4.5,
+                  width: 36,
+                  height: 5,
                   decoration: BoxDecoration(
                     color: AppColors.border,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),
               ),

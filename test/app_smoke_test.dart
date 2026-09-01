@@ -79,13 +79,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('夏日轻盈计划'), findsOneWidget);
+    // The check-in action is the first card, above the weight hero.
+    expect(find.text('今日已打卡'), findsOneWidget);
+    expect(find.text('当前体重'), findsOneWidget);
     // Trends live behind a segmented switcher in one card now.
     expect(find.text('趋势'), findsOneWidget);
     expect(find.text('体重'), findsOneWidget);
     expect(find.text('体脂'), findsOneWidget);
     expect(find.text('消耗'), findsOneWidget);
     expect(find.byType(WeightLineChart), findsOneWidget);
-    expect(find.text('任务打卡完成度'), findsOneWidget);
 
     // Switching the segment reveals the body-fat trend.
     await tester.tap(find.text('体脂'));
@@ -95,10 +97,11 @@ void main() {
     await db.close();
   });
 
-  testWidgets('desktop bento dashboard fills the window without overflow', (
+  testWidgets('wide window dashboard renders without overflow', (
     tester,
   ) async {
-    // Desktop-sized window comfortably past the bento breakpoint.
+    // Desktop-sized window: the shell swaps the pill tab bar for a side rail
+    // and the scrolling column centre-constrains itself.
     tester.view.physicalSize = const Size(1200, 760);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -137,22 +140,21 @@ void main() {
     // pumpAndSettle also surfaces any RenderFlex overflow as a test failure.
     await tester.pumpAndSettle();
 
-    // Bento renders header, stats, today action and the trend card at once.
+    // One column renders header, check-in action, weight hero and trend card.
     expect(find.text('桌面计划'), findsOneWidget);
+    expect(find.text('今日已打卡'), findsOneWidget);
+    expect(find.text('当前体重'), findsOneWidget);
     expect(find.text('趋势'), findsOneWidget);
     expect(find.text('体重'), findsOneWidget);
     expect(find.text('体脂'), findsOneWidget);
     expect(find.text('消耗'), findsOneWidget);
-    expect(find.textContaining('已减重'), findsOneWidget);
-    expect(find.text('任务完成度'), findsOneWidget);
-    // The hero progress card surfaces the latest body-fat reading.
-    expect(find.text('体脂率'), findsOneWidget);
-    expect(find.text('23.5%'), findsOneWidget);
+    // Side rail replaces the pill tab bar past the wide breakpoint.
+    expect(find.byType(NavigationRail), findsOneWidget);
 
     await db.close();
   });
 
-  testWidgets('the centre check-in button opens the check-in sheet', (
+  testWidgets('the check-in action card opens the check-in sheet', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(600, 1400);
@@ -185,11 +187,11 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
 
-    // Tap the raised centre button in the bottom navigation bar. The sheet
-    // loads its data through real async drift calls, so drive the frames in
-    // a real-async zone until the form is ready.
+    // Tap the check-in call to action — the first card on the overview. The
+    // sheet loads its data through real async drift calls, so drive the
+    // frames in a real-async zone until the form is ready.
     await tester.runAsync(() async {
-      await tester.tap(find.byIcon(Icons.add_rounded));
+      await tester.tap(find.text('去打卡'));
       await tester.pump();
       await Future<void>.delayed(const Duration(milliseconds: 600));
       await tester.pump();

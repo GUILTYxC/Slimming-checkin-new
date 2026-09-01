@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 
-/// Soft, diffuse shadow used by every raised surface for a light, airy feel.
-const List<BoxShadow> kSoftShadow = AppShadows.soft;
-
-/// Rounded white surface with a soft shadow. When [onTap] is provided the
-/// card ripples and gently scales down while pressed for tactile feedback.
+/// Resting card surface — a pane of frosted glass over the aurora backdrop.
+///
+/// With [glass] on (the default) the card is a [GlassSurface]: it blurs and
+/// saturates whatever sits behind it, then adds a translucent fill, a specular
+/// sheen and a bright 1px edge. No opaque white, no hairline divider, no
+/// crisp shadow — the pane reads as physical glass rather than paper.
+///
+/// When [onTap] is provided the card ripples and gently scales down while
+/// pressed for tactile feedback.
 class AppCard extends StatefulWidget {
   const AppCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(AppSpacing.page),
+    this.padding = const EdgeInsets.all(AppSpacing.xl),
     this.onTap,
     this.color,
     this.radius = AppRadius.card,
     this.border,
-    this.shadow = kSoftShadow,
+    this.shadow,
+    this.clip = true,
+    this.glass = true,
   });
 
   final Widget child;
@@ -25,8 +32,19 @@ class AppCard extends StatefulWidget {
   final VoidCallback? onTap;
   final Color? color;
   final double radius;
+
+  /// Optional outline. Only needed when a glass pane needs a stronger edge.
   final BoxBorder? border;
+
+  /// Overrides the glass shadow. Pass an empty list to remove it.
   final List<BoxShadow>? shadow;
+
+  /// Set to false when a child must paint outside the rounded corners.
+  final bool clip;
+
+  /// Render as frosted glass. Turn off for the rare surface that must be
+  /// fully opaque (e.g. a chart tooltip).
+  final bool glass;
 
   @override
   State<AppCard> createState() => _AppCardState();
@@ -51,26 +69,41 @@ class _AppCardState extends State<AppCard> {
           onTap: widget.onTap,
           onHighlightChanged: _setPressed,
           borderRadius: br,
-          splashColor: AppColors.primarySoft.withValues(alpha: 0.6),
-          highlightColor: AppColors.primarySoft.withValues(alpha: 0.3),
+          splashColor: AppColors.primary.withValues(alpha: 0.08),
+          highlightColor: AppColors.primary.withValues(alpha: 0.05),
           child: content,
         ),
       );
     }
-    return AnimatedScale(
+
+    final Widget surface =
+        widget.glass
+            ? GlassSurface(
+              radius: widget.radius,
+              color: widget.color,
+              border: widget.border,
+              shadow: _pressed ? const <BoxShadow>[] : widget.shadow,
+              child: content,
+            )
+            : AnimatedContainer(
+              duration: AppMotion.press,
+              decoration: BoxDecoration(
+                color: widget.color ?? AppColors.surface,
+                borderRadius: br,
+                boxShadow:
+                    _pressed ? const [] : (widget.shadow ?? AppShadows.soft),
+                border: widget.border ?? Border.all(color: AppColors.hairline),
+              ),
+              child: content,
+            );
+
+    final card = AnimatedScale(
       scale: _pressed ? 0.98 : 1,
       duration: AppMotion.press,
       curve: Curves.easeOut,
-      child: AnimatedContainer(
-        duration: AppMotion.press,
-        decoration: BoxDecoration(
-          color: widget.color ?? AppColors.surface,
-          borderRadius: br,
-          boxShadow: _pressed ? const [] : widget.shadow,
-          border: widget.border,
-        ),
-        child: ClipRRect(borderRadius: br, child: content),
-      ),
+      child: surface,
     );
+
+    return widget.clip && !widget.glass ? ClipRRect(borderRadius: br, child: card) : card;
   }
 }

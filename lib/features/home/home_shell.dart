@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
-import '../checkin/checkin_sheet.dart';
 import '../dashboard/dashboard_page.dart';
 import '../history/history_page.dart';
 import '../plans/plans_page.dart';
 import '../settings/settings_page.dart';
 
+/// App shell holding the four top-level destinations.
+///
+/// Navigation is a floating pill tab bar rather than a docked bar with a
+/// raised action button: the check-in entry point now lives as the first
+/// card on the overview screen, so the bar can stay flat and quiet.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -37,11 +42,6 @@ class _HomeShellState extends State<HomeShell> {
     if (i == _index) return;
     HapticFeedback.selectionClick();
     setState(() => _index = i);
-  }
-
-  void _openCheckIn() {
-    HapticFeedback.lightImpact();
-    showCheckInSheet(context);
   }
 
   @override
@@ -74,21 +74,19 @@ class _HomeShellState extends State<HomeShell> {
                   index: _index,
                   destinations: _destinations,
                   onSelect: _onSelect,
-                  onCheckIn: _openCheckIn,
                 ),
-                const VerticalDivider(width: 1),
                 Expanded(child: body),
               ],
             ),
           );
         }
         return Scaffold(
+          extendBody: true,
           body: body,
-          bottomNavigationBar: _MintNavBar(
+          bottomNavigationBar: _PillTabBar(
             index: _index,
             destinations: _destinations,
             onSelect: _onSelect,
-            onCheckIn: _openCheckIn,
           ),
         );
       },
@@ -96,51 +94,46 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-/// Custom bottom bar: two tabs on each side of a raised, gradient centre
-/// check-in button.
-class _MintNavBar extends StatelessWidget {
-  const _MintNavBar({
+/// Floating pill tab bar: a rounded capsule with four equal tabs. The
+/// selected tab is a solid accent fill so the active state is unmistakable.
+class _PillTabBar extends StatelessWidget {
+  const _PillTabBar({
     required this.index,
     required this.destinations,
     required this.onSelect,
-    required this.onCheckIn,
   });
 
   final int index;
   final List<_NavItem> destinations;
   final ValueChanged<int> onSelect;
-  final VoidCallback onCheckIn;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: AppShadows.bar,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.xl,
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: 64,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
+        child: GlassSurface(
+          thickness: GlassThickness.thick,
+          radius: 36,
+          height: 62,
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  for (var i = 0; i < destinations.length; i++) ...[
-                    if (i == 2) const Spacer(),
-                    Expanded(
-                      child: _NavTab(
-                        item: destinations[i],
-                        selected: index == i,
-                        onTap: () => onSelect(i),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              Positioned(top: -18, child: CheckInFab(onPressed: onCheckIn)),
+              for (var i = 0; i < destinations.length; i++)
+                Expanded(
+                  child: _TabItem(
+                    item: destinations[i],
+                    selected: index == i,
+                    onTap: () => onSelect(i),
+                  ),
+                ),
             ],
           ),
         ),
@@ -149,55 +142,8 @@ class _MintNavBar extends StatelessWidget {
   }
 }
 
-/// The app's primary action button: a raised mint-gradient disc that opens
-/// the check-in sheet. Also used at the top of the wide-screen rail.
-class CheckInFab extends StatefulWidget {
-  const CheckInFab({super.key, required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  State<CheckInFab> createState() => _CheckInFabState();
-}
-
-class _CheckInFabState extends State<CheckInFab> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTap: widget.onPressed,
-      child: AnimatedScale(
-        scale: _pressed ? 0.92 : 1,
-        duration: AppMotion.press,
-        child: Tooltip(
-          message: '打卡',
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: AppColors.primaryGradient,
-              ),
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.background, width: 4),
-              boxShadow: AppShadows.floating,
-            ),
-            child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavTab extends StatelessWidget {
-  const _NavTab({
+class _TabItem extends StatelessWidget {
+  const _TabItem({
     required this.item,
     required this.selected,
     required this.onTap,
@@ -209,100 +155,102 @@ class _NavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primaryDark : AppColors.textTertiary;
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AnimatedScale(
-            scale: selected ? 1.12 : 1,
-            duration: AppMotion.fast,
-            curve: AppMotion.emphasized,
-            child: Icon(
-              selected ? item.filled : item.outlined,
-              color: color,
-              size: 24,
-            ),
+    final color = selected ? Colors.white : AppColors.textTertiary;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.pillAll,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          curve: AppMotion.emphasized,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(26),
           ),
-          const SizedBox(height: 3),
-          Text(
-            item.label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: color,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(selected ? item.filled : item.outlined, color: color, size: 18),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                item.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: color,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
+/// Wide-window navigation rail. Kept deliberately simple — it is the same
+/// four destinations, just docked to the side.
 class _SideRail extends StatelessWidget {
   const _SideRail({
     required this.index,
     required this.destinations,
     required this.onSelect,
-    required this.onCheckIn,
   });
 
   final int index;
   final List<_NavItem> destinations;
   final ValueChanged<int> onSelect;
-  final VoidCallback onCheckIn;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.surface,
-      child: NavigationRail(
-        selectedIndex: index,
-        onDestinationSelected: onSelect,
-        backgroundColor: AppColors.surface,
-        labelType: NavigationRailLabelType.all,
-        indicatorColor: AppColors.primarySoft,
-        groupAlignment: -0.85,
-        leading: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-          child: Column(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: AppColors.primaryGradient,
-                  ),
-                  borderRadius: AppRadius.smallAll,
-                ),
-                child: const Icon(Icons.eco_rounded, color: Colors.white),
+    return GlassSurface(
+      thickness: GlassThickness.thick,
+      radius: 0,
+      sheen: false,
+      child: SafeArea(
+        child: NavigationRail(
+          selectedIndex: index,
+          onDestinationSelected: onSelect,
+          backgroundColor: Colors.transparent,
+          labelType: NavigationRailLabelType.all,
+          indicatorColor: AppColors.primary,
+          groupAlignment: -0.85,
+          leading: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: AppRadius.smallAll,
               ),
-              const SizedBox(height: AppSpacing.lg),
-              CheckInFab(onPressed: onCheckIn),
-            ],
-          ),
-        ),
-        selectedIconTheme: const IconThemeData(color: AppColors.primaryDark),
-        unselectedIconTheme: const IconThemeData(color: AppColors.textTertiary),
-        selectedLabelTextStyle: const TextStyle(
-          color: AppColors.primaryDark,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-        unselectedLabelTextStyle: const TextStyle(
-          color: AppColors.textTertiary,
-          fontSize: 12,
-        ),
-        destinations: [
-          for (final d in destinations)
-            NavigationRailDestination(
-              icon: Icon(d.outlined),
-              selectedIcon: Icon(d.filled),
-              label: Text(d.label),
+              child: const Icon(Icons.eco_rounded, color: Colors.white),
             ),
-        ],
+          ),
+          selectedIconTheme: const IconThemeData(color: Colors.white),
+          unselectedIconTheme: const IconThemeData(
+            color: AppColors.textTertiary,
+          ),
+          selectedLabelTextStyle: const TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
+          unselectedLabelTextStyle: const TextStyle(
+            color: AppColors.textTertiary,
+            fontSize: 12,
+          ),
+          destinations: [
+            for (final d in destinations)
+              NavigationRailDestination(
+                icon: Icon(d.outlined),
+                selectedIcon: Icon(d.filled),
+                label: Text(d.label),
+              ),
+          ],
+        ),
       ),
     );
   }

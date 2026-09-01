@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
@@ -30,12 +30,15 @@ Future<void> showCheckInSheet(
   if (saved == true && context.mounted) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('打卡已保存 ✓')));
+    ).showSnackBar(const SnackBar(content: Text('打卡已保存')));
   }
 }
 
 /// Half-screen daily check-in form: weight / body-fat / calories plus the
-/// plan's task checklist. Replaces the old full-screen check-in page.
+/// plan's task checklist.
+///
+/// Fields are stacked cards with the label above a large value, which keeps
+/// each row tappable and leaves the numbers legible at a glance.
 class CheckInSheet extends ConsumerStatefulWidget {
   const CheckInSheet({super.key, this.planId, this.date});
 
@@ -264,46 +267,48 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                 allowDecimal: false,
               ),
               if (_tasks.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.xxl),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        '今日任务',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    const Text(
+                      '今日任务',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.37,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     Text(
                       '$_doneCount/${_tasks.length}',
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
                     value:
                         _tasks.isEmpty
                             ? 0
                             : (_doneCount / _tasks.length).clamp(0.0, 1.0),
                     minHeight: 6,
-                    backgroundColor: AppColors.surfaceMuted,
+                    backgroundColor: AppGlass.fillInset,
                     valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppCard(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 4,
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
                   ),
                   child: Column(
                     children: [
@@ -314,7 +319,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                           onTap: () => _toggle(_tasks[i]),
                         ),
                         if (i != _tasks.length - 1)
-                          const Divider(height: 1, indent: 52),
+                          const Divider(height: 1, indent: 46),
                       ],
                     ],
                   ),
@@ -326,8 +331,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
         // Pinned save bar.
         Container(
           decoration: const BoxDecoration(
-            color: AppColors.surface,
-            border: Border(top: BorderSide(color: AppColors.divider)),
+            color: Color(0x8CFFFFFF),
+            border: Border(top: BorderSide(color: AppGlass.strokeTop, width: 1)),
           ),
           padding: EdgeInsets.fromLTRB(
             AppSpacing.page,
@@ -343,6 +348,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                 backgroundColor: _saved ? AppColors.success : AppColors.primary,
                 disabledBackgroundColor:
                     _saved ? AppColors.success : AppColors.primaryContainer,
+                disabledForegroundColor: Colors.white,
               ),
               child: AnimatedSwitcher(
                 duration: AppMotion.fast,
@@ -379,11 +385,12 @@ class _SheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isToday = AppDate.relativeLabel(date) == '今天';
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.page,
         AppSpacing.sm,
-        AppSpacing.sm,
+        AppSpacing.md,
         AppSpacing.md,
       ),
       child: Row(
@@ -395,10 +402,7 @@ class _SheetHeader extends StatelessWidget {
               color: AppColors.primarySoft,
               borderRadius: AppRadius.smallAll,
             ),
-            child: const Icon(
-              Icons.today_rounded,
-              color: AppColors.primaryDark,
-            ),
+            child: const Icon(Icons.today_rounded, color: AppColors.primary),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -406,20 +410,20 @@ class _SheetHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppDate.relativeLabel(date) == '今天'
-                      ? '今日打卡'
-                      : '${AppDate.relativeLabel(date)}补记',
+                  isToday ? '今日打卡' : '${AppDate.relativeLabel(date)}补记',
                   style: const TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
                     color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${AppDate.pretty(date)} · 周${AppDate.shortWeekday(date)}',
+                  '${date.month}月${date.day}日 · 周${AppDate.shortWeekday(date)}',
                   style: const TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -429,9 +433,7 @@ class _SheetHeader extends StatelessWidget {
           IconButton(
             tooltip: '关闭',
             onPressed: () => Navigator.of(context).pop(),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surfaceMuted,
-            ),
+            style: IconButton.styleFrom(backgroundColor: AppGlass.fillInset),
             icon: const Icon(
               Icons.close_rounded,
               color: AppColors.textSecondary,
@@ -444,6 +446,7 @@ class _SheetHeader extends StatelessWidget {
   }
 }
 
+/// A metric input card: label row on top, large value below.
 class _MetricField extends StatefulWidget {
   const _MetricField({
     required this.icon,
@@ -488,42 +491,42 @@ class _MetricFieldState extends State<_MetricField> {
     return AnimatedContainer(
       duration: AppMotion.fast,
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.cardAll,
-        boxShadow: AppShadows.soft,
+        color: Colors.white.withValues(alpha: 0.55),
+        borderRadius: AppRadius.smallAll,
         border: Border.all(
-          color: focused ? AppColors.primary : Colors.transparent,
+          color: focused ? AppColors.primary : AppGlass.strokeTop,
           width: 1.6,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  width: 34,
-                  height: 34,
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: widget.accentSoft,
                     borderRadius: AppRadius.chipAll,
                   ),
-                  child: Icon(widget.icon, size: 19, color: widget.accent),
+                  child: Icon(widget.icon, size: 16, color: widget.accent),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   widget.label,
                   style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.08,
                     color: AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -541,8 +544,10 @@ class _MetricFieldState extends State<_MetricField> {
                       ),
                     ],
                     style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.3,
+                      height: 1.15,
                       color: AppColors.textPrimary,
                     ),
                     decoration: const InputDecoration(
@@ -555,12 +560,13 @@ class _MetricFieldState extends State<_MetricField> {
                     ),
                   ),
                 ),
+                const SizedBox(width: AppSpacing.xs),
                 Text(
                   widget.suffix,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.textTertiary,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -587,36 +593,33 @@ class _TaskRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.chip),
+      borderRadius: AppRadius.chipAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: 14,
+          vertical: 13,
         ),
         child: Row(
           children: [
             AnimatedContainer(
               duration: AppMotion.fast,
               curve: AppMotion.emphasized,
-              width: 30,
-              height: 30,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
                 color: completed ? AppColors.primary : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: completed ? AppColors.primary : AppColors.border,
-                  width: 2,
+                  width: 1.6,
                 ),
               ),
               child:
                   completed
                       ? const Icon(
                         Icons.check_rounded,
-                        size: 18,
+                        size: 15,
                         color: Colors.white,
-                      ).animate().scale(
-                        duration: AppMotion.normal,
-                        curve: AppMotion.spring,
                       )
                       : null,
             ),
@@ -626,12 +629,14 @@ class _TaskRow extends StatelessWidget {
                 duration: AppMotion.fast,
                 style: TextStyle(
                   fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.24,
                   color:
                       completed
                           ? AppColors.textTertiary
                           : AppColors.textPrimary,
-                  decoration: completed ? TextDecoration.lineThrough : null,
+                  decoration:
+                      completed ? TextDecoration.lineThrough : null,
                   decorationColor: AppColors.textTertiary,
                 ),
                 child: Text(title),
@@ -671,50 +676,46 @@ class _CelebrationDialogState extends State<_CelebrationDialog> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: AppRadius.largeAll,
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x1F1A1D1F),
-                blurRadius: 40,
-                offset: Offset(0, 12),
-              ),
-            ],
-          ),
+      child: GlassSurface(
+        thickness: GlassThickness.thick,
+        radius: AppRadius.large,
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🎉', style: TextStyle(fontSize: 56)).animate().scale(
-                duration: AppMotion.slow,
-                curve: AppMotion.spring,
-                begin: const Offset(0.3, 0.3),
-                end: const Offset(1, 1),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: AppColors.successSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: AppColors.successText,
+                  size: 34,
+                ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: AppSpacing.lg),
               const Text(
-                '今日任务全部完成！',
+                '今日任务全部完成',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
                   color: AppColors.textPrimary,
                 ),
-              ).animate(delay: 150.ms).fadeIn().slideY(begin: 0.4, end: 0),
-              const SizedBox(height: 6),
+              ),
+              const SizedBox(height: AppSpacing.xs),
               const Text(
-                '坚持就是胜利，继续加油 💪',
+                '坚持就是胜利，继续加油',
                 style: TextStyle(
                   fontSize: 13.5,
                   color: AppColors.textSecondary,
                 ),
-              ).animate(delay: 260.ms).fadeIn(),
+              ),
             ],
           ),
-        ),
       ),
     );
   }

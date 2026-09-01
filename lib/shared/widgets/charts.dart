@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/dashboard_stats.dart';
@@ -149,16 +150,16 @@ class WeightLineChart extends StatelessWidget {
             horizontalLines: [
               HorizontalLine(
                 y: target,
-                color: AppColors.primary.withValues(alpha: 0.9),
-                strokeWidth: 1.5,
-                dashArray: [6, 4],
+                color: AppColors.border,
+                strokeWidth: 1.4,
+                dashArray: [5, 4],
                 label: HorizontalLineLabel(
                   show: true,
                   alignment: Alignment.topRight,
                   style: const TextStyle(
-                    color: AppColors.primaryDark,
+                    color: AppColors.textTertiary,
                     fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                   labelResolver: (_) => '目标 ${target.toStringAsFixed(0)}',
                 ),
@@ -171,16 +172,20 @@ class WeightLineChart extends StatelessWidget {
               isCurved: true,
               curveSmoothness: 0.32,
               color: AppColors.weight,
-              barWidth: 3.5,
+              barWidth: 2.6,
               isStrokeCapRound: true,
+              // Only the most recent reading gets a dot, so the line stays
+              // quiet and the eye lands on today's value.
               dotData: FlDotData(
-                show: points.length <= 14,
+                show: true,
+                checkToShowDot:
+                    (spot, _) => spot.x == (points.length - 1).toDouble(),
                 getDotPainter:
                     (spot, _, __, ___) => FlDotCirclePainter(
-                      radius: 3.4,
-                      color: Colors.white,
+                      radius: 4.2,
+                      color: AppColors.weight,
                       strokeWidth: 2.4,
-                      strokeColor: AppColors.weight,
+                      strokeColor: Colors.white,
                     ),
               ),
               belowBarData: BarAreaData(
@@ -190,7 +195,7 @@ class WeightLineChart extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     AppColors.weight.withValues(alpha: 0.22),
-                    AppColors.weight.withValues(alpha: 0.0),
+                    AppColors.weight.withValues(alpha: 0.02),
                   ],
                 ),
               ),
@@ -311,15 +316,11 @@ class CalorieBarChart extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(6),
                     ),
-                    gradient: const LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: AppColors.calorieGradient,
-                    ),
+                    color: AppColors.calorie,
                     backDrawRodData: BackgroundBarChartRodData(
                       show: true,
                       toY: maxY,
-                      color: AppColors.surfaceMuted,
+                      color: AppGlass.fillInset,
                     ),
                   ),
                 ],
@@ -476,16 +477,19 @@ class BodyFatLineChart extends StatelessWidget {
               isCurved: true,
               curveSmoothness: 0.32,
               color: AppColors.bodyFat,
-              barWidth: 3.5,
+              barWidth: 2.6,
               isStrokeCapRound: true,
+              // Only the most recent reading gets a dot.
               dotData: FlDotData(
-                show: points.length <= 14,
+                show: true,
+                checkToShowDot:
+                    (spot, _) => spot.x == (points.length - 1).toDouble(),
                 getDotPainter:
                     (spot, _, __, ___) => FlDotCirclePainter(
-                      radius: 3.4,
-                      color: Colors.white,
+                      radius: 4.2,
+                      color: AppColors.bodyFat,
                       strokeWidth: 2.4,
-                      strokeColor: AppColors.bodyFat,
+                      strokeColor: Colors.white,
                     ),
               ),
               belowBarData: BarAreaData(
@@ -495,7 +499,7 @@ class BodyFatLineChart extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     AppColors.bodyFat.withValues(alpha: 0.22),
-                    AppColors.bodyFat.withValues(alpha: 0.0),
+                    AppColors.bodyFat.withValues(alpha: 0.02),
                   ],
                 ),
               ),

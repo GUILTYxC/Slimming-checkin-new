@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
@@ -14,6 +15,9 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../settings/settings_controller.dart';
 
+/// Plan list. The active plan is marked with an accent outline rather than a
+/// gradient ring, and every plan shows the same start → target weight chips
+/// so cards stay comparable.
 class PlansPage extends ConsumerWidget {
   const PlansPage({super.key});
 
@@ -23,49 +27,100 @@ class PlansPage extends ConsumerWidget {
     final unit = ref.watch(settingsProvider.select((s) => s.weightUnit));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('我的计划'),
-        actions: [
-          IconButton(
-            tooltip: '新建计划',
-            onPressed: () => context.push('/plan/new'),
-            icon: const Icon(Icons.add_rounded),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      body: plansAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('出错了：$e')),
-        data: (plans) {
-          if (plans.isEmpty) {
-            return EmptyState(
-              icon: Icons.flag_rounded,
-              title: '还没有计划',
-              message: '创建一个减肥计划，设定目标与每日任务后即可开始打卡。',
-              action: FilledButton.icon(
-                onPressed: () => context.push('/plan/new'),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('创建计划'),
+      body: SafeArea(
+        bottom: false,
+        child: plansAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error:
+              (e, _) => EmptyState(
+                icon: Icons.cloud_off_rounded,
+                title: '数据加载失败',
+                message: '没能读取本地数据，请重试。\n$e',
+                action: FilledButton.icon(
+                  onPressed: () => ref.invalidate(plansProvider),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('重试'),
+                ),
+              ),
+          data: (plans) {
+            if (plans.isEmpty) {
+              return EmptyState(
+                icon: Icons.flag_rounded,
+                title: '还没有计划',
+                message: '创建一个减肥计划，设定目标与每日任务后即可开始打卡。',
+                action: FilledButton.icon(
+                  onPressed: () => context.push('/plan/new'),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('创建计划'),
+                ),
+              );
+            }
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.sm,
+                    AppSpacing.page,
+                    120,
+                  ),
+                  itemCount: plans.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.lg),
+                  itemBuilder: (context, i) {
+                    if (i == 0) return const _PageHeader();
+                    return _PlanCard(plan: plans[i - 1], unit: unit)
+                        .animate(delay: (40 * i).ms)
+                        .fadeIn(duration: 320.ms)
+                        .slideY(begin: 0.06, end: 0, curve: AppMotion.emphasized);
+                  },
+                ),
               ),
             );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.page,
-              16,
-              AppSpacing.page,
-              100,
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _PageHeader extends StatelessWidget {
+  const _PageHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Expanded(
+            child: Text(
+              '我的计划',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+                height: 1.15,
+                color: AppColors.textPrimary,
+              ),
             ),
-            itemCount: plans.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
-            itemBuilder:
-                (context, i) => _PlanCard(plan: plans[i], unit: unit)
-                    .animate(delay: (50 * i).ms)
-                    .fadeIn(duration: 340.ms)
-                    .slideY(begin: 0.08, end: 0, curve: AppMotion.emphasized),
-          );
-        },
+          ),
+          FilledButton.icon(
+            onPressed: () => context.push('/plan/new'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              textStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('新建计划'),
+          ),
+        ],
       ),
     );
   }
@@ -81,22 +136,48 @@ class _PlanCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('删除计划'),
-            content: Text('确定删除「${plan.name}」吗？该计划的所有打卡记录都会被移除，此操作不可撤销。'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.danger,
+          (context) => GlassDialog(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '删除计划',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('删除'),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  '确定删除「${plan.name}」吗？该计划的所有打卡记录都会被移除，此操作不可撤销。',
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    height: 1.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('取消'),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.danger,
+                      ),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('删除'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
     );
     if (ok == true) {
@@ -163,13 +244,14 @@ class _PlanCard extends ConsumerWidget {
         .clamp(0, totalDays);
     final ratio = totalDays == 0 ? 0.0 : passed / totalDays;
 
-    final card = AppCard(
+    return AppCard(
       onTap: plan.isActive ? null : () => _activate(context, ref),
-      shadow: plan.isActive ? const [] : kSoftShadow,
+      border: plan.isActive ? Border.all(color: AppColors.primary, width: 1.5) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Row(
@@ -180,28 +262,30 @@ class _PlanCard extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.3,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
                     if (plan.isActive) ...[
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
+                          horizontal: 10,
+                          vertical: 3,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: AppRadius.pillAll,
                         ),
                         child: const Text(
                           '当前',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -220,121 +304,133 @@ class _PlanCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(
-                Icons.calendar_today_rounded,
-                size: 14,
-                color: AppColors.textTertiary,
-              ),
-              const SizedBox(width: 6),
               Text(
                 '${AppDate.monthDay(plan.startDate)} - ${AppDate.monthDay(plan.endDate)}',
                 style: const TextStyle(
                   fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -0.08,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 12),
               Text(
                 '已进行 $passed/$totalDays 天',
                 style: const TextStyle(
                   fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -0.08,
                   color: AppColors.textTertiary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: ratio.toDouble()),
-              duration: AppMotion.slow,
-              curve: AppMotion.emphasized,
-              builder:
-                  (context, v, _) => LinearProgressIndicator(
-                    value: v,
-                    minHeight: 6,
-                    backgroundColor: AppColors.surfaceMuted,
-                    valueColor: AlwaysStoppedAnimation(
-                      plan.isActive
-                          ? AppColors.primary
-                          : AppColors.textTertiary,
-                    ),
-                  ),
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppSpacing.md),
+          _PlanProgress(ratio: ratio, active: plan.isActive),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               _weightChip(
                 '起始',
                 plan.startWeight,
-                AppColors.weight,
-                AppColors.weightSoft,
+                AppColors.primary,
+                AppColors.primarySoft,
+                Icons.play_arrow_rounded,
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10),
                 child: Icon(
                   Icons.arrow_forward_rounded,
-                  size: 18,
+                  size: 16,
                   color: AppColors.textTertiary,
                 ),
               ),
               _weightChip(
                 '目标',
                 plan.targetWeight,
-                AppColors.primaryDark,
-                AppColors.primarySoft,
+                AppColors.successText,
+                AppColors.successSoft,
+                Icons.flag_rounded,
               ),
             ],
           ),
         ],
       ),
     );
-
-    // The active plan wears a mint gradient ring to stand out.
-    if (plan.isActive) {
-      return Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: AppColors.primaryGradient,
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.card + 2),
-          boxShadow: AppShadows.soft,
-        ),
-        padding: const EdgeInsets.all(1.8),
-        child: card,
-      );
-    }
-    return card;
   }
 
-  Widget _weightChip(String label, double kg, Color color, Color bg) {
+  Widget _weightChip(
+    String label,
+    double kg,
+    Color color,
+    Color bg,
+    IconData icon,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(color: bg, borderRadius: AppRadius.chipAll),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: bg, borderRadius: AppRadius.pillAll),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '$label ',
-            style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
-          ),
-          Text(
-            Formatters.weight(kg, unit),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: color,
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: AppSpacing.xs),
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color.withValues(alpha: 0.75),
+              ),
+              children: [
+                TextSpan(text: '$label '),
+                TextSpan(
+                  text: Formatters.weight(kg, unit),
+                  style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 6px progress bar. Accent fill for the active plan, neutral otherwise.
+class _PlanProgress extends StatelessWidget {
+  const _PlanProgress({required this.ratio, required this.active});
+  final double ratio;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: ratio.clamp(0.0, 1.0).toDouble()),
+      duration: AppMotion.slow,
+      curve: AppMotion.emphasized,
+      builder: (context, v, _) {
+        return Container(
+          height: 6,
+          decoration: BoxDecoration(
+            color: AppGlass.fillInset,
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: v,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: active ? AppGradients.progress : null,
+                color: active ? null : AppColors.textTertiary,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -362,16 +458,17 @@ class _ActionRow extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: (color ?? AppColors.primaryDark).withValues(alpha: 0.10),
+          color: (color ?? AppColors.primary).withValues(alpha: 0.10),
           borderRadius: AppRadius.chipAll,
         ),
-        child: Icon(icon, size: 20, color: color ?? AppColors.primaryDark),
+        child: Icon(icon, size: 20, color: color ?? AppColors.primary),
       ),
       title: Text(
         label,
         style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.24,
           color: effective,
         ),
       ),
