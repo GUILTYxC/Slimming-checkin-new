@@ -83,3 +83,69 @@ class AppColors {
   static const Color bodyFat = Color(0xFF5856D6);
   static const Color bodyFatSoft = Color(0xFFEEEDFC);
 }
+
+/// Dark-mode counterpart of [AppColors].
+///
+/// These are Apple's dark system colours rather than lightened versions of
+/// the light palette. Two rules matter and are easy to get wrong:
+///
+/// * **Pressed states get lighter, not darker.** On a black canvas a darkened
+///   accent simply disappears, so [primaryDark] — the "pressed" shade — is
+///   *lighter* than [primary] here, the opposite of light mode.
+/// * **Semantic colours get brighter.** Green, amber and red all shift up a
+///   step because a mid-tone that is legible on white turns muddy on black.
+///
+/// The canvas is true black, not grey: that is what gives dark liquid glass
+/// something to refract against. Grey-on-grey glass reads as plastic.
+class AppColorsDark {
+  AppColorsDark._();
+
+  // ── Surfaces ────────────────────────────────────────────────────────────
+  static const Color canvas = Color(0xFF000000);
+  static const Color surface = Color(0xFF1C1C1E);
+  static const Color surfaceMuted = Color(0xFF2C2C2E);
+
+  /// Legacy name kept so widgets that read [AppColors.background] compile.
+  static const Color background = canvas;
+
+  // ── Text ────────────────────────────────────────────────────────────────
+  static const Color textPrimary = Color(0xFFF5F5F7);
+  static const Color textSecondary = Color(0xFFAEAEB2);
+  static const Color textTertiary = Color(0xFF8E8E93);
+  static const Color textQuaternary = Color(0xFF6E6E73);
+
+  // ── Lines ───────────────────────────────────────────────────────────────
+  static const Color hairline = Color(0xFF38383A);
+  static const Color divider = Color(0xFF2C2C2E);
+  static const Color border = Color(0xFF48484A);
+
+  // ── Brand ───────────────────────────────────────────────────────────────
+  static const Color primary = Color(0xFF0A84FF);
+  static const Color primaryFocus = Color(0xFF3B9BFF);
+
+  /// Pressed state — *lighter* than [primary]. See the class docs.
+  static const Color primaryDark = Color(0xFF5AACFF);
+  static const Color primarySoft = Color(0xFF12233A);
+  static const Color primaryContainer = Color(0xFF1B3A5C);
+
+  // ── Semantic ────────────────────────────────────────────────────────────
+  static const Color success = Color(0xFF30D158);
+  static const Color successText = Color(0xFF30D158);
+  static const Color successSoft = Color(0xFF0E2A16);
+
+  static const Color warning = Color(0xFFFFD60A);
+  static const Color warningSoft = Color(0xFF2E2605);
+
+  static const Color danger = Color(0xFFFF453A);
+  static const Color dangerSoft = Color(0xFF2E1413);
+
+  // ── Data colours ────────────────────────────────────────────────────────
+  static const Color weight = Color(0xFF0A84FF);
+  static const Color weightSoft = Color(0xFF10243D);
+
+  static const Color calorie = Color(0xFFFF9F0A);
+  static const Color calorieSoft = Color(0xFF2E1F05);
+
+  static const Color bodyFat = Color(0xFF5E5CE6);
+  static const Color bodyFatSoft = Color(0xFF1B1B38);
+}

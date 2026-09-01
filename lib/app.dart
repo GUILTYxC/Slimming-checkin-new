@@ -17,6 +17,7 @@ class SlimmingCheckInApp extends ConsumerWidget {
         title: '轻盈打卡',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
         themeMode: themeMode,
         routerConfig: appRouter,
       ),

@@ -106,6 +106,9 @@ class AppGlass {
     stops: [0.0, 0.6],
   );
 
+  /// Colour of the specular highlight. See [specularAlignment].
+  static const Color specular = Color(0x26FFFFFF);
+
   /// A soft specular highlight sitting just inside the top-left corner.
   ///
   /// The linear [sheen] alone reads as a flat wash. On curved glass the light
@@ -144,6 +147,100 @@ class AppGlass {
   );
 }
 
+/// Dark-mode glass recipe.
+///
+/// Dark glass is **not** light glass recoloured. The physics inverts:
+///
+/// * the fill is translucent *ink* rather than translucent white — it darkens
+///   the backdrop instead of lifting it;
+/// * the rim stays white but is dialled way down, because on a black canvas
+///   white reads far louder than it does on a light one;
+/// * the refraction band is black, not a cool tint — the pane is already
+///   dark, so the band has to remove light rather than add colour;
+/// * the specular highlight is halved again, for the same reason the rim is.
+///
+/// Separation between stacked panes comes almost entirely from the rim here,
+/// not from shadow: a drop shadow is invisible on black.
+class AppGlassDark {
+  AppGlassDark._();
+
+  /// Resting card fill (≈62% of #1C1C1E).
+  static const Color fillRegular = Color(0x9E1C1C1E);
+
+  /// Floating chrome fill (≈75% of #2C2C2E).
+  static const Color fillThick = Color(0xBF2C2C2E);
+
+  /// Inset wells are *lighter* than the pane in dark mode — a whisper of
+  /// white, the inverse of [AppGlass.fillInset].
+  static const Color fillInset = Color(0x14FFFFFF);
+
+  /// Inset wells on chrome.
+  static const Color fillInsetThick = Color(0x1FFFFFFF);
+
+  /// Rim brightness, top → bottom. Same asymmetry as light mode, roughly 40%
+  /// lower across the board.
+  static const LinearGradient edgeLight = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0x99FFFFFF), // top — key light
+      Color(0x1AFFFFFF), // upper sides
+      Color(0x12FFFFFF), // lower sides
+      Color(0x59FFFFFF), // bottom — bounce light
+    ],
+    stops: [0.0, 0.42, 0.72, 1.0],
+  );
+
+  /// The pane is already dark, so the refraction band removes light.
+  static const Color refraction = Color(0x4D000000);
+
+  /// Light pooling along the inside of the bottom edge. Weaker than light
+  /// mode — on black it does not take much to look like a glow stick.
+  static const Color caustic = Color(0x2EFFFFFF);
+
+  /// Specular wash, dimmer than [AppGlass.sheen].
+  static const LinearGradient sheen = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x1AFFFFFF), Color(0x00FFFFFF)],
+    stops: [0.0, 0.6],
+  );
+
+  /// Specular highlight colour — roughly half the alpha of light mode.
+  static const Color specular = Color(0x14FFFFFF);
+
+  /// Default 1px stroke for controls that need an edge. Dimmer than
+  /// [AppGlass.strokeSide]: a 65%-white hairline would scream on black.
+  static const BorderSide strokeSide = BorderSide(
+    color: Color(0x40FFFFFF),
+    width: 1.1,
+  );
+
+  /// Shadows are near-useless on black; these exist only to stop a floating
+  /// pane from bleeding into the content behind it.
+  static const List<BoxShadow> shadow = [
+    BoxShadow(color: Color(0x66000000), blurRadius: 24, offset: Offset(0, 8)),
+    BoxShadow(color: Color(0x33000000), blurRadius: 2, offset: Offset(0, 1)),
+  ];
+
+  static const List<BoxShadow> shadowFloating = [
+    BoxShadow(color: Color(0x8C000000), blurRadius: 34, offset: Offset(0, 12)),
+    BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1)),
+  ];
+
+  /// Dark glass needs *more* saturation lift, not less: a black backdrop
+  /// drains colour out of whatever is blurred behind the pane.
+  static ImageFilter filter(double sigma) => ImageFilter.compose(
+    outer: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    inner: const ColorFilter.matrix(<double>[
+      1.28, 0, 0, 0, 0, //
+      0, 1.28, 0, 0, 0, //
+      0, 0, 1.28, 0, 0, //
+      0, 0, 0, 1, 0, //
+    ]),
+  );
+}
+
 /// Which glass recipe a surface uses.
 enum GlassThickness {
   /// Resting content cards.
@@ -168,35 +265,68 @@ class GlassBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return DecoratedBox(
-      decoration: const BoxDecoration(color: AppColors.canvas),
+      decoration: BoxDecoration(
+        color: dark ? AppColorsDark.canvas : AppColors.canvas,
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const _AuroraBlob(
-            alignment: Alignment(-0.9, -0.95),
-            size: 460,
-            color: AppColors.weight,
-            alpha: 0.26,
-          ),
-          const _AuroraBlob(
-            alignment: Alignment(1.0, -0.4),
-            size: 400,
-            color: AppColors.bodyFat,
-            alpha: 0.20,
-          ),
-          const _AuroraBlob(
-            alignment: Alignment(-0.75, 0.98),
-            size: 480,
-            color: AppColors.calorie,
-            alpha: 0.20,
-          ),
-          const _AuroraBlob(
-            alignment: Alignment(0.7, 0.62),
-            size: 340,
-            color: AppColors.primary,
-            alpha: 0.14,
-          ),
+          // Dark mode runs the aurora much hotter: on black, the light mode
+          // alphas are barely visible, and glass with nothing to refract is
+          // just a flat grey rectangle.
+          if (dark) ...[
+            const _AuroraBlob(
+              alignment: Alignment(-0.9, -0.95),
+              size: 460,
+              color: AppColorsDark.weight,
+              alpha: 0.42,
+            ),
+            const _AuroraBlob(
+              alignment: Alignment(1.0, -0.4),
+              size: 400,
+              color: AppColorsDark.bodyFat,
+              alpha: 0.36,
+            ),
+            const _AuroraBlob(
+              alignment: Alignment(-0.75, 0.98),
+              size: 480,
+              color: AppColorsDark.calorie,
+              alpha: 0.34,
+            ),
+            const _AuroraBlob(
+              alignment: Alignment(0.7, 0.62),
+              size: 340,
+              color: AppColorsDark.primary,
+              alpha: 0.24,
+            ),
+          ] else ...[
+            const _AuroraBlob(
+              alignment: Alignment(-0.9, -0.95),
+              size: 460,
+              color: AppColors.weight,
+              alpha: 0.26,
+            ),
+            const _AuroraBlob(
+              alignment: Alignment(1.0, -0.4),
+              size: 400,
+              color: AppColors.bodyFat,
+              alpha: 0.20,
+            ),
+            const _AuroraBlob(
+              alignment: Alignment(-0.75, 0.98),
+              size: 480,
+              color: AppColors.calorie,
+              alpha: 0.20,
+            ),
+            const _AuroraBlob(
+              alignment: Alignment(0.7, 0.62),
+              size: 340,
+              color: AppColors.primary,
+              alpha: 0.14,
+            ),
+          ],
           child,
         ],
       ),
@@ -283,7 +413,11 @@ class GlassDialog extends StatelessWidget {
 /// [BorderSide] cannot vary its brightness around the perimeter — and that
 /// variation is the whole point.
 class GlassRimPainter extends CustomPainter {
-  const GlassRimPainter({required this.borderRadius, this.refraction = true});
+  const GlassRimPainter({
+    required this.borderRadius,
+    this.refraction = true,
+    this.dark = false,
+  });
 
   /// Resolved corner radii. Non-symmetric shapes (a sheet that only rounds
   /// its top corners) are supported.
@@ -292,6 +426,10 @@ class GlassRimPainter extends CustomPainter {
   /// Set to false on very small controls, where a refraction band would just
   /// read as dirt.
   final bool refraction;
+
+  /// Switches to the [AppGlassDark] rim recipe: a dimmer white edge and a
+  /// black refraction band.
+  final bool dark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -310,7 +448,8 @@ class GlassRimPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = AppGlass.edgeWidth
-        ..shader = AppGlass.edgeLight.createShader(rect),
+        ..shader = (dark ? AppGlassDark.edgeLight : AppGlass.edgeLight)
+            .createShader(rect),
     );
 
     if (!refraction) return;
@@ -323,7 +462,7 @@ class GlassRimPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = band
-        ..color = AppGlass.refraction,
+        ..color = dark ? AppGlassDark.refraction : AppGlass.refraction,
     );
 
     // 3 — caustic, clipped to the lower third so the top edge stays clean.
@@ -341,14 +480,16 @@ class GlassRimPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.6
-        ..color = AppGlass.caustic,
+        ..color = dark ? AppGlassDark.caustic : AppGlass.caustic,
     );
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(GlassRimPainter old) =>
-      old.borderRadius != borderRadius || old.refraction != refraction;
+      old.borderRadius != borderRadius ||
+      old.refraction != refraction ||
+      old.dark != dark;
 }
 
 /// A translucent pane of glass.
@@ -424,13 +565,20 @@ class GlassSurface extends StatelessWidget {
     final br = (borderRadius ?? BorderRadius.circular(radius)).resolve(
       Directionality.of(context),
     );
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final sigma = blur ?? (_thick ? AppGlass.blurThick : AppGlass.blurRegular);
-    final fill = color ?? (_thick ? AppGlass.fillThick : AppGlass.fillRegular);
+    final fill =
+        color ??
+        (_thick
+            ? (dark ? AppGlassDark.fillThick : AppGlass.fillThick)
+            : (dark ? AppGlassDark.fillRegular : AppGlass.fillRegular));
     final shadows =
         shadow ??
         (inset
             ? const <BoxShadow>[]
-            : (_thick ? AppGlass.shadowFloating : AppGlass.shadow));
+            : (_thick
+                ? (dark ? AppGlassDark.shadowFloating : AppGlass.shadowFloating)
+                : (dark ? AppGlassDark.shadow : AppGlass.shadow)));
 
     Widget content = child;
     if (padding case final p?) {
@@ -448,7 +596,7 @@ class GlassSurface extends StatelessWidget {
       child: ClipRRect(
         borderRadius: br,
         child: BackdropFilter(
-          filter: AppGlass.filter(sigma),
+          filter: dark ? AppGlassDark.filter(sigma) : AppGlass.filter(sigma),
           child: DecoratedBox(
             decoration: BoxDecoration(color: fill),
             child: Stack(
@@ -459,7 +607,7 @@ class GlassSurface extends StatelessWidget {
                 // top-left corner, where the surface normal points at the
                 // light. Sits under the rim so the rim stays crisp.
                 if (sheen)
-                  const Positioned.fill(
+                  Positioned.fill(
                     child: IgnorePointer(
                       child: Align(
                         alignment: AppGlass.specularAlignment,
@@ -469,7 +617,12 @@ class GlassSurface extends StatelessWidget {
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: RadialGradient(
-                                colors: [Color(0x26FFFFFF), Color(0x00FFFFFF)],
+                                colors: [
+                                  dark
+                                      ? AppGlassDark.specular
+                                      : AppGlass.specular,
+                                  const Color(0x00FFFFFF),
+                                ],
                               ),
                             ),
                           ),
@@ -488,7 +641,9 @@ class GlassSurface extends StatelessWidget {
                         // default rim is painted by [GlassRimPainter] below,
                         // which can vary brightness around the perimeter.
                         border: border,
-                        gradient: sheen ? AppGlass.sheen : null,
+                        gradient: sheen
+                            ? (dark ? AppGlassDark.sheen : AppGlass.sheen)
+                            : null,
                       ),
                       child: border != null
                           ? null
@@ -498,6 +653,7 @@ class GlassSurface extends StatelessWidget {
                                 // Nested glass is too small for a refraction
                                 // band to read as anything but dirt.
                                 refraction: !inset,
+                                dark: dark,
                               ),
                             ),
                     ),
