@@ -83,6 +83,10 @@ class _AppCardState extends State<AppCard> {
               color: widget.color,
               border: widget.border,
               shadow: _pressed ? const <BoxShadow>[] : widget.shadow,
+              // The material deforms, not just the geometry: blur tightens,
+              // fill densifies, rim dims, highlight drifts inward. See
+              // [GlassSurface.pressed].
+              pressed: _pressed,
               child: content,
             )
             : AnimatedContainer(

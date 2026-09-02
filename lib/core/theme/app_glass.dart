@@ -117,6 +117,32 @@ class AppGlass {
   /// It is deliberately faint: real glass highlights are easy to overdo.
   static const Alignment specularAlignment = Alignment(-0.72, -0.86);
 
+  // ── Press response ─────────────────────────────────────────────────────
+  /// Fraction of the blur lost at full press.
+  ///
+  /// Pressing liquid glass flattens it against whatever is behind, so there
+  /// is less distance for light to scatter over and the blur tightens. A
+  /// surface that only shrinks under a finger is reacting like paper; the
+  /// material has to react too.
+  static const double pressBlurDrop = 0.28;
+
+  /// How much denser the fill gets at full press, in alpha units.
+  static const double pressFillGain = 0.10;
+
+  /// Where the specular highlight drifts to at full press.
+  ///
+  /// The highlight slides toward the centre because the surface is bowing —
+  /// this is the detail that reads as "liquid" rather than "dimmed".
+  static const Alignment specularAlignmentPressed = Alignment(-0.60, -0.76);
+
+  /// Rim brightness multiplier at full press: less thickness, less light
+  /// travelling through the edge.
+  static const double pressRimFade = 0.62;
+
+  /// Duration of the press settle. Slightly longer than the geometric scale
+  /// so the material visibly flows rather than snapping.
+  static const Duration pressDuration = Duration(milliseconds: 180);
+
   // ── Shadows ────────────────────────────────────────────────────────────
   /// Diffuse, slightly blue-tinted shadow. Glass scatters light, so its
   /// shadow is softer and cooler than an opaque card's.
@@ -361,7 +387,10 @@ class _AuroraBlob extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
+            colors: [
+              color.withValues(alpha: alpha),
+              color.withValues(alpha: 0),
+            ],
           ),
         ),
       ),
@@ -378,7 +407,10 @@ class GlassDialog extends StatelessWidget {
   const GlassDialog({
     super.key,
     required this.child,
-    this.insetPadding = const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+    this.insetPadding = const EdgeInsets.symmetric(
+      horizontal: 40,
+      vertical: 24,
+    ),
     this.padding = const EdgeInsets.fromLTRB(24, 24, 24, 14),
     this.radius = AppRadius.large,
   });
@@ -421,6 +453,7 @@ class GlassRimPainter extends CustomPainter {
     required this.borderRadius,
     this.refraction = true,
     this.dark = false,
+    this.press = 0,
   });
 
   /// Resolved corner radii. Non-symmetric shapes (a sheet that only rounds
@@ -435,6 +468,13 @@ class GlassRimPainter extends CustomPainter {
   /// black refraction band.
   final bool dark;
 
+  /// Press progress, 0 → 1. Dims the whole rim, since a flattened pane has
+  /// less thickness for light to travel through.
+  ///
+  /// Only non-zero while the finger is down, so the layer this costs is never
+  /// paid at rest.
+  final double press;
+
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
@@ -445,6 +485,14 @@ class GlassRimPainter extends CustomPainter {
       bottomLeft: borderRadius.bottomLeft,
       bottomRight: borderRadius.bottomRight,
     );
+
+    if (press > 0) {
+      final fade = 1 - (1 - AppGlass.pressRimFade) * press;
+      canvas.saveLayer(
+        rect.inflate(6),
+        Paint()..color = Color.fromARGB((255 * fade).round(), 255, 255, 255),
+      );
+    }
 
     // 1 — bright rim.
     canvas.drawRRect(
@@ -487,13 +535,16 @@ class GlassRimPainter extends CustomPainter {
         ..color = dark ? AppGlassDark.caustic : AppGlass.caustic,
     );
     canvas.restore();
+
+    if (press > 0) canvas.restore();
   }
 
   @override
   bool shouldRepaint(GlassRimPainter old) =>
       old.borderRadius != borderRadius ||
       old.refraction != refraction ||
-      old.dark != dark;
+      old.dark != dark ||
+      old.press != press;
 }
 
 /// A translucent pane of glass.
@@ -518,6 +569,7 @@ class GlassSurface extends StatelessWidget {
     this.blur,
     this.sheen = true,
     this.inset = false,
+    this.pressed = false,
     this.width,
     this.height,
     this.constraints,
@@ -556,6 +608,15 @@ class GlassSurface extends StatelessWidget {
   /// and skip the shadow so nested glass does not stack darkness.
   final bool inset;
 
+  /// True while a finger is on the pane.
+  ///
+  /// The material deforms rather than just the geometry: the blur tightens,
+  /// the fill densifies, the rim dims and the specular highlight slides
+  /// toward the centre, as it would if a soft sheet bowed under pressure.
+  /// All of it eases over [AppGlass.pressDuration] so the glass visibly
+  /// flows into its pressed state instead of snapping.
+  final bool pressed;
+
   final double? width;
   final double? height;
   final BoxConstraints? constraints;
@@ -570,8 +631,9 @@ class GlassSurface extends StatelessWidget {
       Directionality.of(context),
     );
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final sigma = blur ?? (_thick ? AppGlass.blurThick : AppGlass.blurRegular);
-    final fill =
+    final baseSigma =
+        blur ?? (_thick ? AppGlass.blurThick : AppGlass.blurRegular);
+    final baseFill =
         color ??
         (_thick
             ? (dark ? AppGlassDark.fillThick : AppGlass.fillThick)
@@ -589,85 +651,119 @@ class GlassSurface extends StatelessWidget {
       content = Padding(padding: p, child: content);
     }
 
-    return Container(
-      width: width,
-      height: height,
-      constraints: constraints,
-      alignment: alignment,
-      // The shadow lives on an outer container so it is painted *behind* the
-      // blurred backdrop rather than being smeared into it.
-      decoration: BoxDecoration(borderRadius: br, boxShadow: shadows),
-      child: ClipRRect(
-        borderRadius: br,
-        child: BackdropFilter(
-          filter: dark ? AppGlassDark.filter(sigma) : AppGlass.filter(sigma),
-          child: DecoratedBox(
-            decoration: BoxDecoration(color: fill),
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: [
-                content,
-                // Specular highlight: a soft elongated spot just inside the
-                // top-left corner, where the surface normal points at the
-                // light. Sits under the rim so the rim stays crisp.
-                if (sheen)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Align(
-                        alignment: AppGlass.specularAlignment,
-                        child: FractionallySizedBox(
-                          widthFactor: 0.62,
-                          heightFactor: 0.30,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(
-                                colors: [
-                                  dark
-                                      ? AppGlassDark.specular
-                                      : AppGlass.specular,
-                                  const Color(0x00FFFFFF),
-                                ],
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: pressed ? 1 : 0),
+      duration: AppGlass.pressDuration,
+      curve: AppMotion.emphasized,
+      builder: (context, t, child) {
+        final sigma = baseSigma * (1 - AppGlass.pressBlurDrop * t);
+        final fill =
+            t == 0
+                ? baseFill
+                : baseFill.withValues(
+                  alpha: (baseFill.a + AppGlass.pressFillGain * t).clamp(
+                    0.0,
+                    1.0,
+                  ),
+                );
+        final spec =
+            Alignment.lerp(
+              AppGlass.specularAlignment,
+              AppGlass.specularAlignmentPressed,
+              t,
+            )!;
+
+        return Container(
+          width: width,
+          height: height,
+          constraints: constraints,
+          alignment: alignment,
+          // The shadow lives on an outer container so it is painted *behind*
+          // the blurred backdrop rather than being smeared into it.
+          decoration: BoxDecoration(borderRadius: br, boxShadow: shadows),
+          child: ClipRRect(
+            borderRadius: br,
+            child: BackdropFilter(
+              filter:
+                  dark ? AppGlassDark.filter(sigma) : AppGlass.filter(sigma),
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: fill),
+                child: Stack(
+                  fit: StackFit.passthrough,
+                  children: [
+                    child!,
+                    // Specular highlight: a soft elongated spot just inside
+                    // the top-left corner, where the surface normal points at
+                    // the light. Sits under the rim so the rim stays crisp.
+                    // It drifts toward the centre while pressed.
+                    if (sheen)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Align(
+                            alignment: spec,
+                            child: FractionallySizedBox(
+                              widthFactor: 0.62,
+                              heightFactor: 0.30,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      dark
+                                          ? AppGlassDark.specular
+                                          : AppGlass.specular,
+                                      const Color(0x00FFFFFF),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                // Sheen + rim ride on top of the content: they belong to the
-                // front face of the glass, not to what is inside it.
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: br,
-                        // Only set when the caller overrides the stroke; the
-                        // default rim is painted by [GlassRimPainter] below,
-                        // which can vary brightness around the perimeter.
-                        border: border,
-                        gradient: sheen
-                            ? (dark ? AppGlassDark.sheen : AppGlass.sheen)
-                            : null,
+                    // Sheen + rim ride on top of the content: they belong to
+                    // the front face of the glass, not to what is inside it.
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: br,
+                            // Only set when the caller overrides the stroke;
+                            // the default rim is painted by [GlassRimPainter]
+                            // below, which can vary brightness around the
+                            // perimeter.
+                            border: border,
+                            gradient:
+                                sheen
+                                    ? (dark
+                                        ? AppGlassDark.sheen
+                                        : AppGlass.sheen)
+                                    : null,
+                          ),
+                          child:
+                              border != null
+                                  ? null
+                                  : CustomPaint(
+                                    painter: GlassRimPainter(
+                                      borderRadius: br,
+                                      // Nested glass is too small for a
+                                      // refraction band to read as anything but
+                                      // dirt.
+                                      refraction: !inset,
+                                      dark: dark,
+                                      press: t,
+                                    ),
+                                  ),
+                        ),
                       ),
-                      child: border != null
-                          ? null
-                          : CustomPaint(
-                              painter: GlassRimPainter(
-                                borderRadius: br,
-                                // Nested glass is too small for a refraction
-                                // band to read as anything but dirt.
-                                refraction: !inset,
-                                dark: dark,
-                              ),
-                            ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
+      child: content,
     );
   }
 }
