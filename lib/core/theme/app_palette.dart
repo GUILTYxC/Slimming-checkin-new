@@ -54,6 +54,9 @@ class AppPalette {
     required this.fillInset,
     required this.fillInsetThick,
     required this.strokeTop,
+    required this.barFill,
+    required this.wellFill,
+    required this.barrier,
   });
 
   final Color canvas;
@@ -95,6 +98,15 @@ class AppPalette {
   /// Bright edge of a glass pane, for surfaces drawing their own stroke.
   final Color strokeTop;
 
+  /// Translucent fill for a bar/chip pinned over a pane.
+  final Color barFill;
+
+  /// Inset input well fill.
+  final Color wellFill;
+
+  /// Modal scrim behind dialogs and sheets.
+  final Color barrier;
+
   static const AppPalette light = AppPalette(
     canvas: AppColors.canvas,
     surface: AppColors.surface,
@@ -128,6 +140,9 @@ class AppPalette {
     fillInset: AppGlass.fillInset,
     fillInsetThick: AppGlass.fillInsetThick,
     strokeTop: AppGlass.strokeTop,
+    barFill: AppGlass.barFill,
+    wellFill: AppGlass.wellFill,
+    barrier: AppGlass.barrier,
   );
 
   static const AppPalette dark = AppPalette(
@@ -163,6 +178,9 @@ class AppPalette {
     fillInset: AppGlassDark.fillInset,
     fillInsetThick: AppGlassDark.fillInsetThick,
     strokeTop: AppGlassDark.strokeTop,
+    barFill: AppGlassDark.barFill,
+    wellFill: AppGlassDark.wellFill,
+    barrier: AppGlassDark.barrier,
   );
 }
 

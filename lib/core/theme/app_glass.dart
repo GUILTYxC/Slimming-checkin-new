@@ -47,6 +47,21 @@ class AppGlass {
   /// Inset wells on chrome, where the backdrop is busier.
   static const Color fillInsetThick = Color(0x141D1D1F);
 
+  /// Translucent fill for a bar or chip pinned over a pane — the pinned save
+  /// bar in the check-in sheet, the streak pill on the dashboard.
+  ///
+  /// Light mode lifts these off the pane with white; dark mode (see
+  /// [AppGlassDark.barFill]) has to drop them with ink instead.
+  static const Color barFill = Color(0x8CFFFFFF);
+
+  /// Inset input well fill — a denser white than [fillInset], matching
+  /// `InputDecorationTheme.fillColor` so custom editors and stock text fields
+  /// read as the same surface.
+  static const Color wellFill = Color(0x8CFFFFFF);
+
+  /// Modal scrim behind dialogs and sheets. Dims a light canvas with black.
+  static const Color barrier = Color(0x52000000);
+
   // ── Stroke ─────────────────────────────────────────────────────────────
   /// Width of the bright rim that runs around the outside of a pane.
   static const double edgeWidth = 1.2;
@@ -202,6 +217,21 @@ class AppGlassDark {
 
   /// Inset wells on chrome.
   static const Color fillInsetThick = Color(0x1FFFFFFF);
+
+  /// Translucent fill for a bar pinned inside a sheet.
+  ///
+  /// Light mode lifts the bar off the sheet with white; dark mode has to drop
+  /// it with ink instead. A 55%-white bar sitting on a dark sheet is not a
+  /// bar, it is a glare strip.
+  static const Color barFill = Color(0x8C1C1C1E);
+
+  /// Inset input well fill. On black the well has to *catch* light rather
+  /// than drop it, so this is a whisper of white instead of a sheet of ink.
+  static const Color wellFill = Color(0x12FFFFFF);
+
+  /// Modal scrim. A black canvas needs a much heavier scrim to read as
+  /// "dim" — 32% black on black is invisible.
+  static const Color barrier = Color(0x99000000);
 
   /// Bright top edge, for surfaces that draw their own stroke. Dimmer than
   /// [AppGlass.strokeTop] — see [edgeLight].

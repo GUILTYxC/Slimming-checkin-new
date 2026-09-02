@@ -193,7 +193,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     HapticFeedback.mediumImpact();
     showDialog<void>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
+      barrierColor: context.palette.barrier,
       builder: (_) => const _CelebrationDialog(),
     );
   }
@@ -331,7 +331,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
         // Pinned save bar.
         Container(
           decoration: BoxDecoration(
-            color: const Color(0x8CFFFFFF),
+            color: context.palette.barFill,
             border: Border(top: BorderSide(color: context.palette.strokeTop, width: 1)),
           ),
           padding: EdgeInsets.fromLTRB(
@@ -491,7 +491,7 @@ class _MetricFieldState extends State<_MetricField> {
     return AnimatedContainer(
       duration: AppMotion.fast,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.55),
+        color: context.palette.wellFill,
         borderRadius: AppRadius.smallAll,
         border: Border.all(
           color: focused ? context.palette.primary : context.palette.strokeTop,

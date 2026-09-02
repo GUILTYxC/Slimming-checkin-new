@@ -176,7 +176,7 @@ class _StreakPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.62),
+        color: context.palette.barFill,
         borderRadius: AppRadius.pillAll,
         border: Border.all(color: context.palette.strokeTop),
       ),

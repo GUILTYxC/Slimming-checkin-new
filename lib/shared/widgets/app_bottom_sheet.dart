@@ -17,7 +17,7 @@ Future<T?> showAppSheet<T>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.32),
+    barrierColor: context.palette.barrier,
     builder:
         (context) => AppBottomSheet(heightFactor: heightFactor, child: child),
   );
