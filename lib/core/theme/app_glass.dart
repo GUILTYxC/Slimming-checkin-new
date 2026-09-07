@@ -332,6 +332,13 @@ class GlassBackdrop extends StatelessWidget {
       ),
       child: Stack(
         fit: StackFit.expand,
+        // Explicit and non-directional. This backdrop sits *above*
+        // MaterialApp in the tree, so there is no Directionality ancestor to
+        // resolve a directional alignment from — the default
+        // AlignmentDirectional.topStart would throw. StackFit.expand already
+        // hands the child a tight fill constraint, so the resolved rect is
+        // identical either way; this just removes the ambient dependency.
+        alignment: Alignment.topLeft,
         children: [
           // Dark mode runs the aurora much hotter: on black, the light mode
           // alphas are barely visible, and glass with nothing to refract is
