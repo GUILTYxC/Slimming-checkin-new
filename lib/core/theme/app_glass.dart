@@ -30,6 +30,14 @@ class AppGlass {
   /// Backdrop blur radius for floating chrome.
   static const double blurThick = 28;
 
+  /// How long the backdrop blur takes to fade in or out.
+  ///
+  /// Sheets switch the blur off while they slide — it would otherwise re-blur
+  /// on every frame — and back on once they settle. Switching it instantly
+  /// makes everything behind the sheet visibly snap between sharp and
+  /// blurred, so it fades instead.
+  static const Duration blurFadeDuration = Duration(milliseconds: 180);
+
   // ── Fill ───────────────────────────────────────────────────────────────
   /// Resting card fill (≈62% white). Transparent enough that the aurora
   /// behind it shifts as the page scrolls.
@@ -694,7 +702,14 @@ class GlassSurface extends StatelessWidget {
             : (_thick
                 ? (dark ? AppGlassDark.shadowFloating : AppGlass.shadowFloating)
                 : (dark ? AppGlassDark.shadow : AppGlass.shadow)));
-    final useBackdrop = backdrop ?? _thick;
+    // Only floating chrome carries a blur at all — cards sitting on the soft
+    // aurora gain nothing from one (see [backdrop]).
+    final supportsBackdrop = _thick;
+    // Whether it should be applied *right now*. Sheets flip this off while
+    // they slide and back on when they settle, so the blur is never
+    // re-sampled on a moving pane. It is a strength rather than a hard switch
+    // so the transition fades instead of snapping.
+    final blurStrength = (backdrop ?? _thick) ? 1.0 : 0.0;
 
     Widget content = child;
     if (padding case final p?) {
@@ -722,93 +737,91 @@ class GlassSurface extends StatelessWidget {
               t,
             )!;
 
-        Widget pane = DecoratedBox(
-          decoration: BoxDecoration(color: fill),
-          child: Stack(
-            fit: StackFit.passthrough,
-            children: [
-              child!,
-              // Specular highlight: a soft elongated spot just inside the
-              // top-left corner, where the surface normal points at the
-              // light. Sits under the rim so the rim stays crisp. It drifts
-              // toward the centre while pressed.
-              if (sheen)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Align(
-                      alignment: spec,
-                      child: FractionallySizedBox(
-                        widthFactor: 0.62,
-                        heightFactor: 0.30,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              colors: [
-                                dark
-                                    ? AppGlassDark.specular
-                                    : AppGlass.specular,
-                                const Color(0x00FFFFFF),
-                              ],
-                            ),
+        // Layer order matters: fill, then the blur, then the content. A
+        // BackdropFilter samples everything painted before it, so a blur
+        // placed above the content would blur the content too.
+        Widget pane = Stack(
+          fit: StackFit.passthrough,
+          children: [
+            Positioned.fill(child: ColoredBox(color: fill)),
+            if (supportsBackdrop)
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  // At 0 this layer is not painted at all, so a pane in
+                  // motion still pays nothing for the blur — the fade only
+                  // costs frames once the pane has stopped moving.
+                  opacity: blurStrength,
+                  duration: AppGlass.blurFadeDuration,
+                  curve: Curves.easeOut,
+                  child: BackdropFilter(
+                    filter: (dark ? AppGlassDark.filter : AppGlass.filter)(
+                      baseSigma * (1 - AppGlass.pressBlurDrop * t),
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ),
+            child!,
+            // Specular highlight: a soft elongated spot just inside the
+            // top-left corner, where the surface normal points at the
+            // light. Sits under the rim so the rim stays crisp. It drifts
+            // toward the centre while pressed.
+            if (sheen)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: spec,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.62,
+                      heightFactor: 0.30,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            colors: [
+                              dark ? AppGlassDark.specular : AppGlass.specular,
+                              const Color(0x00FFFFFF),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              // Sheen + rim ride on top of the content: they belong to the
-              // front face of the glass, not to what is inside it.
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: br,
-                      // Only set when the caller overrides the stroke; the
-                      // default rim is painted by [GlassRimPainter] below,
-                      // which can vary brightness around the perimeter.
-                      border: border,
-                      gradient:
-                          sheen
-                              ? (dark
-                                  ? AppGlassDark.sheen
-                                  : AppGlass.sheen)
-                              : null,
-                    ),
-                    child:
-                        border != null
-                            ? null
-                            : CustomPaint(
-                              painter: GlassRimPainter(
-                                borderRadius: br,
-                                // Nested glass is too small for a refraction
-                                // band to read as anything but dirt.
-                                refraction: !inset,
-                                dark: dark,
-                                press: t,
-                              ),
-                            ),
+              ),
+            // Sheen + rim ride on top of the content: they belong to the
+            // front face of the glass, not to what is inside it.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: br,
+                    // Only set when the caller overrides the stroke; the
+                    // default rim is painted by [GlassRimPainter] below,
+                    // which can vary brightness around the perimeter.
+                    border: border,
+                    gradient:
+                        sheen
+                            ? (dark ? AppGlassDark.sheen : AppGlass.sheen)
+                            : null,
                   ),
+                  child:
+                      border != null
+                          ? null
+                          : CustomPaint(
+                            painter: GlassRimPainter(
+                              borderRadius: br,
+                              // Nested glass is too small for a refraction
+                              // band to read as anything but dirt.
+                              refraction: !inset,
+                              dark: dark,
+                              press: t,
+                            ),
+                          ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
-
-        // A backdrop blur is a full offscreen pass that re-runs every frame
-        // the pixels behind the pane move — scrolling a list of cards
-        // therefore multiplies the GPU load by the number of visible cards.
-        // Cards sit on the soft aurora, where a blur is visually invisible
-        // (a radial gradient blurs into the same gradient), so they skip it.
-        // Only floating chrome that overlaps moving text — the tab bar,
-        // sheets and dialogs — keeps the blur.
-        if (useBackdrop) {
-          final sigma = baseSigma * (1 - AppGlass.pressBlurDrop * t);
-          pane = BackdropFilter(
-            filter:
-                dark ? AppGlassDark.filter(sigma) : AppGlass.filter(sigma),
-            child: pane,
-          );
-        }
 
         return Container(
           width: width,
