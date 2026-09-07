@@ -133,7 +133,7 @@ class SettingsPage extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '版本 1.5.5 · 数据仅保存在本机',
+                              '版本 1.5.6 · 数据仅保存在本机',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
