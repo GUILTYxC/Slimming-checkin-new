@@ -716,124 +716,132 @@ class GlassSurface extends StatelessWidget {
       content = Padding(padding: p, child: content);
     }
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: pressed ? 1 : 0),
-      duration: AppGlass.pressDuration,
-      curve: AppMotion.emphasized,
-      builder: (context, t, child) {
-        final fill =
-            t == 0
-                ? baseFill
-                : baseFill.withValues(
-                  alpha: (baseFill.a + AppGlass.pressFillGain * t).clamp(
-                    0.0,
-                    1.0,
-                  ),
-                );
-        final spec =
-            Alignment.lerp(
-              AppGlass.specularAlignment,
-              AppGlass.specularAlignmentPressed,
-              t,
-            )!;
+    Widget buildPane(BuildContext context, double t, Widget? content) {
+      final fill =
+          t == 0
+              ? baseFill
+              : baseFill.withValues(
+                alpha: (baseFill.a + AppGlass.pressFillGain * t).clamp(
+                  0.0,
+                  1.0,
+                ),
+              );
+      final spec =
+          Alignment.lerp(
+            AppGlass.specularAlignment,
+            AppGlass.specularAlignmentPressed,
+            t,
+          )!;
 
-        // Layer order matters: fill, then the blur, then the content. A
-        // BackdropFilter samples everything painted before it, so a blur
-        // placed above the content would blur the content too.
-        Widget pane = Stack(
-          fit: StackFit.passthrough,
-          children: [
-            Positioned.fill(child: ColoredBox(color: fill)),
-            if (supportsBackdrop)
-              Positioned.fill(
-                child: AnimatedOpacity(
-                  // At 0 this layer is not painted at all, so a pane in
-                  // motion still pays nothing for the blur — the fade only
-                  // costs frames once the pane has stopped moving.
-                  opacity: blurStrength,
-                  duration: AppGlass.blurFadeDuration,
-                  curve: Curves.easeOut,
-                  child: BackdropFilter(
-                    filter: (dark ? AppGlassDark.filter : AppGlass.filter)(
-                      baseSigma * (1 - AppGlass.pressBlurDrop * t),
-                    ),
-                    child: const SizedBox.expand(),
+      // Layer order matters: fill, then the blur, then the content. A
+      // BackdropFilter samples everything painted before it, so a blur
+      // placed above the content would blur the content too.
+      final pane = Stack(
+        fit: StackFit.passthrough,
+        children: [
+          Positioned.fill(child: ColoredBox(color: fill)),
+          if (supportsBackdrop)
+            Positioned.fill(
+              child: AnimatedOpacity(
+                // At 0 this layer is not painted at all, so a pane in
+                // motion still pays nothing for the blur — the fade only
+                // costs frames once the pane has stopped moving.
+                opacity: blurStrength,
+                duration: AppGlass.blurFadeDuration,
+                curve: Curves.easeOut,
+                child: BackdropFilter(
+                  filter: (dark ? AppGlassDark.filter : AppGlass.filter)(
+                    baseSigma * (1 - AppGlass.pressBlurDrop * t),
                   ),
+                  child: const SizedBox.expand(),
                 ),
               ),
-            child!,
-            // Specular highlight: a soft elongated spot just inside the
-            // top-left corner, where the surface normal points at the
-            // light. Sits under the rim so the rim stays crisp. It drifts
-            // toward the centre while pressed.
-            if (sheen)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Align(
-                    alignment: spec,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.62,
-                      heightFactor: 0.30,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              dark ? AppGlassDark.specular : AppGlass.specular,
-                              const Color(0x00FFFFFF),
-                            ],
-                          ),
+            ),
+          content!,
+          // Specular highlight: a soft elongated spot just inside the
+          // top-left corner, where the surface normal points at the
+          // light. Sits under the rim so the rim stays crisp. It drifts
+          // toward the centre while pressed.
+          if (sheen)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Align(
+                  alignment: spec,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.62,
+                    heightFactor: 0.30,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          colors: [
+                            dark ? AppGlassDark.specular : AppGlass.specular,
+                            const Color(0x00FFFFFF),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            // Sheen + rim ride on top of the content: they belong to the
-            // front face of the glass, not to what is inside it.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: br,
-                    // Only set when the caller overrides the stroke; the
-                    // default rim is painted by [GlassRimPainter] below,
-                    // which can vary brightness around the perimeter.
-                    border: border,
-                    gradient:
-                        sheen
-                            ? (dark ? AppGlassDark.sheen : AppGlass.sheen)
-                            : null,
-                  ),
-                  child:
-                      border != null
-                          ? null
-                          : CustomPaint(
-                            painter: GlassRimPainter(
-                              borderRadius: br,
-                              // Nested glass is too small for a refraction
-                              // band to read as anything but dirt.
-                              refraction: !inset,
-                              dark: dark,
-                              press: t,
-                            ),
-                          ),
+            ),
+          // Sheen + rim ride on top of the content: they belong to the
+          // front face of the glass, not to what is inside it.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: br,
+                  // Only set when the caller overrides the stroke; the
+                  // default rim is painted by [GlassRimPainter] below,
+                  // which can vary brightness around the perimeter.
+                  border: border,
+                  gradient:
+                      sheen
+                          ? (dark ? AppGlassDark.sheen : AppGlass.sheen)
+                          : null,
                 ),
+                child:
+                    border != null
+                        ? null
+                        : CustomPaint(
+                          painter: GlassRimPainter(
+                            borderRadius: br,
+                            // Nested glass is too small for a refraction
+                            // band to read as anything but dirt.
+                            refraction: !inset,
+                            dark: dark,
+                            press: t,
+                          ),
+                        ),
               ),
             ),
-          ],
-        );
+          ),
+        ],
+      );
 
-        return Container(
-          width: width,
-          height: height,
-          constraints: constraints,
-          alignment: alignment,
-          // The shadow lives on an outer container so it is painted *behind*
-          // the pane rather than being smeared into it.
-          decoration: BoxDecoration(borderRadius: br, boxShadow: shadows),
-          child: ClipRRect(borderRadius: br, child: pane),
-        );
-      },
+      return Container(
+        width: width,
+        height: height,
+        constraints: constraints,
+        alignment: alignment,
+        // The shadow lives on an outer container so it is painted *behind*
+        // the pane rather than being smeared into it.
+        decoration: BoxDecoration(borderRadius: br, boxShadow: shadows),
+        child: ClipRRect(borderRadius: br, child: pane),
+      );
+    }
+
+    // Resting panes (no press affordance) skip the animation shell so every
+    // card does not pay for a TweenAnimationBuilder rebuild path.
+    if (!pressed) {
+      return buildPane(context, 0, content);
+    }
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: AppGlass.pressDuration,
+      curve: AppMotion.emphasized,
+      builder: (context, t, child) => buildPane(context, t, child),
       child: content,
     );
   }

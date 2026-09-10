@@ -46,22 +46,10 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final body = AnimatedSwitcher(
-      duration: AppMotion.normal,
-      switchInCurve: AppMotion.emphasized,
-      transitionBuilder:
-          (child, anim) => FadeTransition(
-            opacity: anim,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.015),
-                end: Offset.zero,
-              ).animate(anim),
-              child: child,
-            ),
-          ),
-      child: KeyedSubtree(key: ValueKey(_index), child: _pages[_index]),
-    );
+    // Keep all four tabs mounted so scroll offset and page state survive
+    // switches. Off-stage children do not paint, so the cost is one extra
+    // element tree — not extra glass blurs or chart raster work.
+    final body = IndexedStack(index: _index, children: _pages);
 
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -116,6 +116,42 @@ void main() {
     },
   );
 
+  test('upsert and task completion stay single-row under conflict', () async {
+    final id = await repo.createPlan(
+      name: 'P',
+      startDate: DateTime(2026, 7, 1),
+      endDate: DateTime(2026, 7, 31),
+      startWeight: 80,
+      targetWeight: 70,
+      taskTitles: ['a'],
+    );
+    final tasks = await repo.getTasks(id);
+    final date = DateTime(2026, 7, 10);
+
+    // Write the same (plan, date) and (task, date) twice — must upsert.
+    for (var i = 0; i < 2; i++) {
+      await repo.upsertRecord(
+        planId: id,
+        date: date,
+        weight: 79.0 - i,
+        caloriesBurned: 100.0 + i,
+      );
+      await repo.setTaskCompletion(
+        planId: id,
+        taskId: tasks.first.id,
+        date: date,
+        completed: i.isOdd,
+      );
+    }
+
+    final rec = await repo.getRecord(id, date);
+    expect(rec?.weight, 78);
+    expect(rec?.caloriesBurned, 101);
+    expect((await repo.watchRecords(id).first).length, 1);
+    expect((await repo.getTaskLogs(id, date)).length, 1);
+    expect((await repo.getTaskLogs(id, date)).single.completed, isTrue);
+  });
+
   test('deleting a plan cascades to its tasks and records', () async {
     final id = await repo.createPlan(
       name: 'P',

@@ -12,6 +12,7 @@ import '../../shared/widgets/animated_count.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/charts.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/fade_in_once.dart';
 import '../checkin/checkin_sheet.dart';
 import '../settings/settings_controller.dart';
 import '../../core/theme/app_palette.dart';
@@ -104,10 +105,11 @@ class _DashboardContent extends StatelessWidget {
           itemCount: cards.length,
           separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.lg),
           itemBuilder:
-              (context, i) => cards[i]
-                  .animate(delay: (40 * i).ms)
-                  .fadeIn(duration: 320.ms)
-                  .slideY(begin: 0.06, end: 0, curve: AppMotion.emphasized),
+              (context, i) => FadeInOnce(
+                delay: (40 * i).ms,
+                duration: const Duration(milliseconds: 320),
+                child: cards[i],
+              ),
         ),
       ),
     );
@@ -561,25 +563,27 @@ class _TrendCardState extends State<_TrendCard> {
   @override
   Widget build(BuildContext context) {
     final stats = widget.stats;
-    final chart = switch (_tab) {
-      'bodyFat' => BodyFatLineChart(
-        key: const ValueKey('bodyFat'),
-        points: stats.bodyFatSeries,
-        height: 150,
-      ),
-      'calories' => CalorieBarChart(
-        key: const ValueKey('calories'),
-        points: stats.last7Calories,
-        height: 150,
-      ),
-      _ => WeightLineChart(
-        key: const ValueKey('weight'),
-        points: stats.weightSeries,
-        unit: widget.unit,
-        targetKg: stats.plan.targetWeight,
-        height: 150,
-      ),
-    };
+    // Isolate chart raster work from sibling rebuilds. Key the boundary by
+    // tab so AnimatedSwitcher sees distinct children and can cross-fade.
+    final chart = RepaintBoundary(
+      key: ValueKey(_tab),
+      child: switch (_tab) {
+        'bodyFat' => BodyFatLineChart(
+          points: stats.bodyFatSeries,
+          height: 150,
+        ),
+        'calories' => CalorieBarChart(
+          points: stats.last7Calories,
+          height: 150,
+        ),
+        _ => WeightLineChart(
+          points: stats.weightSeries,
+          unit: widget.unit,
+          targetKg: stats.plan.targetWeight,
+          height: 150,
+        ),
+      },
+    );
 
     final switcher = AnimatedSwitcher(
       duration: AppMotion.normal,

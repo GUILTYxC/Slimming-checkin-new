@@ -205,31 +205,28 @@ class AppRepository {
     String? note,
   }) async {
     final d = date.dateOnly;
-    final existing = await getRecord(planId, d);
-    if (existing == null) {
-      await _db
-          .into(_db.dailyRecords)
-          .insert(
-            DailyRecordsCompanion.insert(
-              planId: planId,
-              date: d,
+    // Atomic against the (planId, date) unique key — no read-then-write race.
+    await _db
+        .into(_db.dailyRecords)
+        .insert(
+          DailyRecordsCompanion.insert(
+            planId: planId,
+            date: d,
+            weight: Value(weight),
+            bodyFat: Value(bodyFat),
+            caloriesBurned: Value(caloriesBurned),
+            note: Value(note),
+          ),
+          onConflict: DoUpdate(
+            (_) => DailyRecordsCompanion(
               weight: Value(weight),
               bodyFat: Value(bodyFat),
               caloriesBurned: Value(caloriesBurned),
               note: Value(note),
             ),
-          );
-    } else {
-      await (_db.update(_db.dailyRecords)
-        ..where((t) => t.id.equals(existing.id))).write(
-        DailyRecordsCompanion(
-          weight: Value(weight),
-          bodyFat: Value(bodyFat),
-          caloriesBurned: Value(caloriesBurned),
-          note: Value(note),
-        ),
-      );
-    }
+            target: [_db.dailyRecords.planId, _db.dailyRecords.date],
+          ),
+        );
   }
 
   // ---------------------------------------------------------------------------
@@ -257,26 +254,21 @@ class AppRepository {
     required bool completed,
   }) async {
     final d = date.dateOnly;
-    final existing =
-        await (_db.select(_db.taskLogs)..where(
-          (t) => t.taskId.equals(taskId) & t.date.equals(d),
-        )).getSingleOrNull();
-    if (existing == null) {
-      await _db
-          .into(_db.taskLogs)
-          .insert(
-            TaskLogsCompanion.insert(
-              planId: planId,
-              taskId: taskId,
-              date: d,
-              completed: Value(completed),
-            ),
-          );
-    } else {
-      await (_db.update(_db.taskLogs)..where(
-        (t) => t.id.equals(existing.id),
-      )).write(TaskLogsCompanion(completed: Value(completed)));
-    }
+    // Atomic against the (taskId, date) unique key.
+    await _db
+        .into(_db.taskLogs)
+        .insert(
+          TaskLogsCompanion.insert(
+            planId: planId,
+            taskId: taskId,
+            date: d,
+            completed: Value(completed),
+          ),
+          onConflict: DoUpdate(
+            (_) => TaskLogsCompanion(completed: Value(completed)),
+            target: [_db.taskLogs.taskId, _db.taskLogs.date],
+          ),
+        );
   }
 
   // ---------------------------------------------------------------------------

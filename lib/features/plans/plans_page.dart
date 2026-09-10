@@ -12,6 +12,7 @@ import '../../data/database/app_database.dart';
 import '../../shared/widgets/app_bottom_sheet.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/fade_in_once.dart';
 import '../settings/settings_controller.dart';
 import '../../core/theme/app_palette.dart';
 
@@ -70,10 +71,11 @@ class PlansPage extends ConsumerWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.lg),
                   itemBuilder: (context, i) {
                     if (i == 0) return const _PageHeader();
-                    return _PlanCard(plan: plans[i - 1], unit: unit)
-                        .animate(delay: (40 * i).ms)
-                        .fadeIn(duration: 320.ms)
-                        .slideY(begin: 0.06, end: 0, curve: AppMotion.emphasized);
+                    return FadeInOnce(
+                      delay: (40 * i).ms,
+                      duration: const Duration(milliseconds: 320),
+                      child: _PlanCard(plan: plans[i - 1], unit: unit),
+                    );
                   },
                 ),
               ),

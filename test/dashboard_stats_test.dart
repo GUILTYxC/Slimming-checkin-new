@@ -110,4 +110,72 @@ void main() {
     expect(s.goalReached, isTrue);
     expect(s.progress, 1.0);
   });
+
+  test('goalReached is direction-aware for weight-gain plans', () {
+    Plan gainPlan() => Plan(
+      id: 1,
+      name: 'Gain',
+      startDate: DateTime(2026, 7, 11),
+      endDate: DateTime(2026, 7, 31),
+      startWeight: 60,
+      targetWeight: 70,
+      isActive: true,
+      createdAt: today,
+    );
+
+    final mid = DashboardStats.compute(
+      plan: gainPlan(),
+      tasks: const [],
+      records: [
+        DailyRecord(id: 1, planId: 1, date: today, weight: 65, caloriesBurned: 0),
+      ],
+      logs: const [],
+      now: today,
+    );
+    expect(mid.isLosingWeight, isFalse);
+    expect(mid.goalReached, isFalse);
+    expect(mid.progress, closeTo(0.5, 1e-9));
+
+    final done = DashboardStats.compute(
+      plan: gainPlan(),
+      tasks: const [],
+      records: [
+        DailyRecord(id: 1, planId: 1, date: today, weight: 70, caloriesBurned: 0),
+      ],
+      logs: const [],
+      now: today,
+    );
+    expect(done.goalReached, isTrue);
+    expect(done.progress, 1.0);
+  });
+
+  test('computeStreak applies one-day grace and counts task-only days', () {
+    final todayD = DateTime(2026, 7, 21);
+    // Today open, yesterday + day-before are check-ins.
+    expect(
+      DashboardStats.computeStreak([
+        DateTime(2026, 7, 20),
+        DateTime(2026, 7, 19),
+      ], todayD),
+      2,
+    );
+    // Today counts too.
+    expect(
+      DashboardStats.computeStreak([
+        DateTime(2026, 7, 21),
+        DateTime(2026, 7, 20),
+        DateTime(2026, 7, 19),
+      ], todayD),
+      3,
+    );
+    // Gap breaks the streak.
+    expect(
+      DashboardStats.computeStreak([
+        DateTime(2026, 7, 20),
+        DateTime(2026, 7, 18),
+      ], todayD),
+      1,
+    );
+    expect(DashboardStats.computeStreak(const [], todayD), 0);
+  });
 }

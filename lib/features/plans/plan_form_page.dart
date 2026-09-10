@@ -36,7 +36,7 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
   final _targetWeightCtrl = TextEditingController();
 
   DateTime _startDate = AppDate.today();
-  DateTime _endDate = AppDate.today().add(const Duration(days: 30));
+  DateTime _endDate = AppDate.addDays(AppDate.today(), 30);
   final List<_TaskField> _tasks = [];
 
   bool _loading = false;
@@ -100,13 +100,17 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
       initialDate: initial,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
-      builder:
-          (context, child) => Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: ColorScheme.light(primary: context.palette.primary),
-            ),
-            child: child!,
-          ),
+      builder: (context, child) {
+        final base = Theme.of(context);
+        final scheme = ColorScheme.fromSeed(
+          seedColor: context.palette.primary,
+          brightness: base.brightness,
+        );
+        return Theme(
+          data: base.copyWith(colorScheme: scheme),
+          child: child!,
+        );
+      },
     );
     if (picked == null) return;
     setState(() {

@@ -70,7 +70,15 @@ class DashboardStats {
   final List<BodyFatPoint> bodyFatSeries;
   final List<CaloriePoint> last7Calories;
 
-  bool get goalReached => currentWeight <= plan.targetWeight;
+  /// True when the plan moves weight down (start ≥ target).
+  bool get isLosingWeight => plan.startWeight >= plan.targetWeight;
+
+  /// Goal is direction-aware: loss plans succeed when current ≤ target,
+  /// gain plans when current ≥ target.
+  bool get goalReached =>
+      isLosingWeight
+          ? currentWeight <= plan.targetWeight
+          : currentWeight >= plan.targetWeight;
 
   double get todayTaskRatio =>
       todayTasksTotal == 0 ? 0 : todayTasksDone / todayTasksTotal;
@@ -81,6 +89,23 @@ class DashboardStats {
       totalTaskExpected == 0
           ? 0
           : (totalTaskDone / totalTaskExpected).clamp(0.0, 1.0).toDouble();
+
+  /// Consecutive check-in days ending today, or yesterday if today is open.
+  ///
+  /// A day counts when it has a daily record or a completed task log.
+  static int computeStreak(Iterable<DateTime> checkInDates, DateTime today) {
+    final days = {for (final d in checkInDates) d.dateOnly};
+    var cursor = today.dateOnly;
+    if (!days.contains(cursor)) {
+      cursor = AppDate.addDays(cursor, -1);
+    }
+    var streak = 0;
+    while (days.contains(cursor)) {
+      streak++;
+      cursor = AppDate.addDays(cursor, -1);
+    }
+    return streak;
+  }
 
   static DashboardStats compute({
     required Plan plan,
@@ -144,20 +169,11 @@ class DashboardStats {
     final latestBodyFat = fatRecords.isEmpty ? null : fatRecords.last.bodyFat;
 
     // Streak: consecutive check-in days ending today (or yesterday for grace).
-    final checkInDays = <DateTime>{
+    final streak = computeStreak([
       for (final r in records) r.date.dateOnly,
       for (final l in logs)
         if (l.completed) l.date.dateOnly,
-    };
-    var cursor = today;
-    if (!checkInDays.contains(cursor)) {
-      cursor = cursor.subtract(const Duration(days: 1));
-    }
-    var streak = 0;
-    while (checkInDays.contains(cursor)) {
-      streak++;
-      cursor = cursor.subtract(const Duration(days: 1));
-    }
+    ], today);
 
     // Weight series anchored on the plan start weight.
     final series = <WeightPoint>[
@@ -176,7 +192,7 @@ class DashboardStats {
     final last7 = <CaloriePoint>[
       for (var i = 6; i >= 0; i--)
         () {
-          final d = today.subtract(Duration(days: i));
+          final d = AppDate.addDays(today, -i);
           return CaloriePoint(d, byDate[d] ?? 0);
         }(),
     ];

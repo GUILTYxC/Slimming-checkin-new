@@ -16,11 +16,22 @@ class AppDate {
 
   static DateTime today() => DateTime.now().dateOnly;
 
-  /// Inclusive number of whole days between two dates (date-only).
+  /// Calendar-day difference, immune to DST (local midnight gaps of 23/25h).
+  ///
+  /// Positive when [to] is after [from].
   static int daysBetween(DateTime from, DateTime to) {
     final a = from.dateOnly;
     final b = to.dateOnly;
-    return b.difference(a).inDays;
+    return DateTime.utc(b.year, b.month, b.day)
+            .difference(DateTime.utc(a.year, a.month, a.day))
+            .inDays;
+  }
+
+  /// Calendar-day arithmetic on a date-only value (DST-safe).
+  static DateTime addDays(DateTime date, int days) {
+    final d = date.dateOnly;
+    final utc = DateTime.utc(d.year, d.month, d.day).add(Duration(days: days));
+    return DateTime(utc.year, utc.month, utc.day);
   }
 
   static String monthDay(DateTime d) => DateFormat('MM/dd').format(d);

@@ -9,8 +9,10 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_date.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/database/app_database.dart';
+import '../../data/models/dashboard_stats.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/fade_in_once.dart';
 import '../checkin/checkin_sheet.dart';
 import '../settings/settings_controller.dart';
 import '../../core/theme/app_palette.dart';
@@ -32,13 +34,17 @@ class HistoryPage extends ConsumerWidget {
       initialDate: last,
       firstDate: plan.startDate,
       lastDate: last,
-      builder:
-          (context, child) => Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: ColorScheme.light(primary: context.palette.primary),
-            ),
-            child: child!,
-          ),
+      builder: (context, child) {
+        final base = Theme.of(context);
+        final scheme = ColorScheme.fromSeed(
+          seedColor: context.palette.primary,
+          brightness: base.brightness,
+        );
+        return Theme(
+          data: base.copyWith(colorScheme: scheme),
+          child: child!,
+        );
+      },
     );
     if (picked != null && context.mounted) {
       await showCheckInSheet(context, planId: plan.id, date: picked.dateOnly);
@@ -123,7 +129,7 @@ class _HistoryList extends ConsumerWidget {
     final doneByDate = <DateTime, int>{};
     for (final l in logs) {
       if (l.completed) {
-        final d = l.date;
+        final d = l.date.dateOnly;
         doneByDate[d] = (doneByDate[d] ?? 0) + 1;
       }
     }
@@ -131,7 +137,13 @@ class _HistoryList extends ConsumerWidget {
       0,
       (s, r) => s + r.caloriesBurned,
     );
-    final streak = _streak(sorted.map((r) => r.date).toList());
+    // Same rule as the overview dashboard: records ∪ completed logs, with a
+    // one-day grace when today is still open.
+    final streak = DashboardStats.computeStreak([
+      for (final r in records) r.date.dateOnly,
+      for (final l in logs)
+        if (l.completed) l.date.dateOnly,
+    ], AppDate.today());
 
     // Flatten the list into: title, summary card, then month header + rows.
     final items = <Widget>[
@@ -154,7 +166,7 @@ class _HistoryList extends ConsumerWidget {
         _HistoryTile(
           record: r,
           unit: unit,
-          doneTasks: doneByDate[r.date] ?? 0,
+          doneTasks: doneByDate[r.date.dateOnly] ?? 0,
           totalTasks: tasks.length,
           onTap: () => showCheckInSheet(context, planId: plan.id, date: r.date),
         ),
@@ -175,27 +187,13 @@ class _HistoryList extends ConsumerWidget {
           itemCount: items.length,
           separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
           itemBuilder:
-              (context, index) => items[index]
-                  .animate(delay: (25 * index).clamp(0, 400).ms)
-                  .fadeIn(duration: 300.ms),
+              (context, index) => FadeInOnce(
+                delay: (25 * index).clamp(0, 400).ms,
+                child: items[index],
+              ),
         ),
       ),
     );
-  }
-
-  /// Counts consecutive recorded days walking back from the latest record.
-  static int _streak(List<DateTime> datesDesc) {
-    if (datesDesc.isEmpty) return 0;
-    var streak = 1;
-    for (var i = 1; i < datesDesc.length; i++) {
-      final gap = datesDesc[i - 1].difference(datesDesc[i]).inDays;
-      if (gap == 1) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return streak;
   }
 }
 
