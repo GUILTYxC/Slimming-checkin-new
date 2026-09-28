@@ -16,36 +16,20 @@ import '../../shared/widgets/empty_state.dart';
 import '../settings/settings_controller.dart';
 import '../../core/theme/app_palette.dart';
 
-/// Opens the daily check-in form as a modal bottom sheet and shows a light
-/// confirmation when the record was saved.
+/// Opens the daily check-in form as a modal bottom sheet.
+///
+/// Save is silent on purpose — the sheet simply closes. The only extra
+/// affordance is a short celebration when this save first hits the goal weight.
 Future<void> showCheckInSheet(
   BuildContext context, {
   int? planId,
   DateTime? date,
 }) async {
-  final result = await showAppSheet<CheckInResult>(
+  final goalJustReached = await showAppSheet<bool>(
     context,
     child: CheckInSheet(planId: planId, date: date),
   );
-  if (result == null || !context.mounted) return;
-  final messenger = ScaffoldMessenger.of(context);
-  messenger.clearSnackBars();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text(result.goalJustReached ? '打卡已保存 · 目标达成！' : '打卡已保存'),
-      duration: const Duration(seconds: 5),
-      action: result.undo == null
-          ? null
-          : SnackBarAction(
-              label: '撤销',
-              onPressed: () {
-                result.undo!();
-                messenger.showSnackBar(const SnackBar(content: Text('已撤销上次打卡')));
-              },
-            ),
-    ),
-  );
-  if (result.goalJustReached && context.mounted) {
+  if (goalJustReached == true && context.mounted) {
     HapticFeedback.heavyImpact();
     await showDialog<void>(
       context: context,
@@ -53,13 +37,6 @@ Future<void> showCheckInSheet(
       builder: (_) => const _CelebrationDialog(title: '目标达成！'),
     );
   }
-}
-
-/// What a finished check-in hands back to the caller.
-class CheckInResult {
-  const CheckInResult({required this.undo, required this.goalJustReached});
-  final Future<void> Function()? undo;
-  final bool goalJustReached;
 }
 
 /// Half-screen daily check-in form: weight / body-fat / calories plus the
@@ -156,7 +133,6 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
 
   Future<void> _setTask(PlanTask task, {int? value, bool? toggle}) async {
     final isDosage = task.targetCount > 1;
-    final prev = _values[task.id] ?? 0;
     int nextValue;
     bool nextDone;
     if (isDosage && value != null) {
@@ -180,12 +156,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
           completed: nextDone,
           value: nextValue,
         );
-    if (nextDone &&
-        prev < task.targetCount &&
-        _tasks.isNotEmpty &&
-        _doneCount == _tasks.length) {
-      _celebrate();
-    }
+    // Completing the last task is silent — the progress bar already shows it.
   }
 
   Future<void> _save() async {
@@ -225,6 +196,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
             ? previous!.weight! <= plan.targetWeight
             : previous!.weight! >= plan.targetWeight)
         : false;
+    // previous is only needed to detect "goal first reached this save".
 
     setState(() => _saving = true);
     await repo.upsertRecord(
@@ -242,17 +214,6 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
             : weightKg >= plan.targetWeight)
         : false;
 
-    Future<void> undo() async {
-      await repo.upsertRecord(
-        planId: _planId!,
-        date: _date,
-        weight: previous?.weight,
-        bodyFat: previous?.bodyFat,
-        caloriesBurned: previous?.caloriesBurned ?? 0,
-        note: previous?.note,
-      );
-    }
-
     // Let the button morph into a checkmark before the sheet slides away.
     setState(() {
       _saving = false;
@@ -261,22 +222,8 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     HapticFeedback.mediumImpact();
     await Future<void>.delayed(const Duration(milliseconds: 320));
     if (mounted) {
-      Navigator.of(context).pop(
-        CheckInResult(
-          undo: undo,
-          goalJustReached: goalAfter && !goalBefore,
-        ),
-      );
+      Navigator.of(context).pop(goalAfter && !goalBefore);
     }
-  }
-
-  void _celebrate() {
-    HapticFeedback.mediumImpact();
-    showDialog<void>(
-      context: context,
-      barrierColor: context.palette.barrier,
-      builder: (_) => const _CelebrationDialog(title: '今日任务全部完成'),
-    );
   }
 
   @override
