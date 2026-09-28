@@ -35,8 +35,9 @@ class AppGlass {
   /// Sheets switch the blur off while they slide — it would otherwise re-blur
   /// on every frame — and back on once they settle. Switching it instantly
   /// makes everything behind the sheet visibly snap between sharp and
-  /// blurred, so it fades instead.
-  static const Duration blurFadeDuration = Duration(milliseconds: 180);
+  /// blurred, so it fades instead. Long enough that the sheet does not read
+  /// as "suddenly going opaque" when the blur lands.
+  static const Duration blurFadeDuration = Duration(milliseconds: 360);
 
   // ── Fill ───────────────────────────────────────────────────────────────
   /// Resting card fill (≈62% white). Transparent enough that the aurora
@@ -616,6 +617,7 @@ class GlassSurface extends StatelessWidget {
     this.sheen = true,
     this.inset = false,
     this.pressed = false,
+    this.blurStrength,
     this.width,
     this.height,
     this.constraints,
@@ -657,6 +659,11 @@ class GlassSurface extends StatelessWidget {
   /// aurora, where a blur is visually invisible (a radial gradient blurs into
   /// the same gradient), so they skip it. See [GlassSurface.build].
   final bool? backdrop;
+
+  /// Continuous blur strength in 0..1. When set, overrides [backdrop] so a
+  /// sheet can ramp blur with its entrance animation instead of snapping on
+  /// after it parks.
+  final double? blurStrength;
 
   /// Set to false for small controls where a sheen would look noisy.
   final bool sheen;
@@ -705,11 +712,11 @@ class GlassSurface extends StatelessWidget {
     // Only floating chrome carries a blur at all — cards sitting on the soft
     // aurora gain nothing from one (see [backdrop]).
     final supportsBackdrop = _thick;
-    // Whether it should be applied *right now*. Sheets flip this off while
-    // they slide and back on when they settle, so the blur is never
-    // re-sampled on a moving pane. It is a strength rather than a hard switch
-    // so the transition fades instead of snapping.
-    final blurStrength = (backdrop ?? _thick) ? 1.0 : 0.0;
+    // Whether it should be applied *right now*. Sheets can drive this
+    // continuously from their entrance animation ([blurStrength]) so the
+    // blur ramps in with the slide instead of snapping on after it parks.
+    final blurAmount =
+        blurStrength ?? ((backdrop ?? _thick) ? 1.0 : 0.0);
 
     Widget content = child;
     if (padding case final p?) {
@@ -746,9 +753,9 @@ class GlassSurface extends StatelessWidget {
                 // At 0 this layer is not painted at all, so a pane in
                 // motion still pays nothing for the blur — the fade only
                 // costs frames once the pane has stopped moving.
-                opacity: blurStrength,
+                opacity: blurAmount,
                 duration: AppGlass.blurFadeDuration,
-                curve: Curves.easeOut,
+                curve: Curves.easeOutCubic,
                 child: BackdropFilter(
                   filter: (dark ? AppGlassDark.filter : AppGlass.filter)(
                     baseSigma * (1 - AppGlass.pressBlurDrop * t),

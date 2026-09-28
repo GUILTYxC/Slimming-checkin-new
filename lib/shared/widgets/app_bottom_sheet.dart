@@ -18,6 +18,13 @@ Future<T?> showAppSheet<T>(
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: context.palette.barrier,
+    // Softer, slightly longer entrance than the Material default so the
+    // sheet never reads as a hard cut from transparent to opaque.
+    transitionAnimationController: AnimationController(
+      vsync: Navigator.of(context),
+      duration: const Duration(milliseconds: 320),
+      reverseDuration: const Duration(milliseconds: 240),
+    ),
     builder:
         (context) => AppBottomSheet(heightFactor: heightFactor, child: child),
   );
@@ -43,16 +50,15 @@ class AppBottomSheet extends StatefulWidget {
 }
 
 class _AppBottomSheetState extends State<AppBottomSheet> {
-  /// True only once the sheet has finished sliding in and come to rest.
+  /// Continuous 0..1 blur strength, driven by the route entrance animation.
   ///
-  /// A backdrop blur re-samples everything behind the pane, so it re-runs on
-  /// every frame the pane moves. Blurring a sheet *while it slides* therefore
-  /// costs one full-screen blur per frame, which is what makes the slide-in
-  /// stutter. The blur is switched on only once the sheet is parked, and off
-  /// again the moment it starts leaving, so both the entrance and the exit
-  /// stay smooth. At rest the blur is exactly as before — the gate costs
-  /// nothing visually once the sheet stops.
-  bool _settled = false;
+  /// A backdrop blur re-samples everything behind the pane, so a full blur
+  /// during the slide costs one offscreen pass per frame and stutters. The
+  /// blur is kept at 0 for the first half of the slide, then *ramps* to 1
+  /// over the second half and parks there. Ramping with the slide (instead
+  /// of snapping on after the sheet stops) is what keeps the pane from
+  /// looking like it suddenly went opaque.
+  double _blur = 0;
 
   Animation<double>? _routeAnimation;
 
@@ -61,24 +67,35 @@ class _AppBottomSheetState extends State<AppBottomSheet> {
     super.didChangeDependencies();
     final animation = ModalRoute.of(context)?.animation;
     if (animation == _routeAnimation) return;
-    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _routeAnimation?.removeListener(_onRouteTick);
     _routeAnimation = animation;
-    animation?.addStatusListener(_onRouteStatus);
+    animation?.addListener(_onRouteTick);
     // No route animation means the sheet is not sliding at all (used as a
-    // plain widget rather than a modal), so the blur stays on.
-    _settled =
-        animation == null || animation.status == AnimationStatus.completed;
+    // plain widget rather than a modal), so the blur stays fully on.
+    _blur = animation == null ? 1.0 : _blurFor(animation.value);
   }
 
-  void _onRouteStatus(AnimationStatus status) {
+  void _onRouteTick() {
     if (!mounted) return;
-    final settled = status == AnimationStatus.completed;
-    if (settled != _settled) setState(() => _settled = settled);
+    final t = _routeAnimation?.value ?? 1.0;
+    final next = _blurFor(t);
+    if ((next - _blur).abs() < 0.01) return;
+    setState(() => _blur = next);
+  }
+
+  /// 0 for the first 55% of the entrance, smoothstep up to 1 by the end.
+  /// On the way out the same curve runs backwards, so dismiss softens too.
+  double _blurFor(double t) {
+    if (t <= 0.55) return 0;
+    if (t >= 1) return 1;
+    final u = (t - 0.55) / 0.45;
+    // Smoothstep: C1-continuous, no corner at the ramp edges.
+    return u * u * (3 - 2 * u);
   }
 
   @override
   void dispose() {
-    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _routeAnimation?.removeListener(_onRouteTick);
     super.dispose();
   }
 
@@ -94,8 +111,7 @@ class _AppBottomSheetState extends State<AppBottomSheet> {
         thickness: GlassThickness.thick,
         borderRadius: AppRadius.sheetTop,
         constraints: BoxConstraints(maxHeight: maxHeight),
-        // No blur while the sheet is in motion — see [_settled].
-        backdrop: _settled,
+        blurStrength: _blur,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
