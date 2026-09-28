@@ -88,7 +88,7 @@ class HistoryPage extends ConsumerWidget {
   }
 }
 
-class _HistoryList extends ConsumerWidget {
+class _HistoryList extends ConsumerStatefulWidget {
   const _HistoryList({
     required this.plan,
     required this.unit,
@@ -100,7 +100,16 @@ class _HistoryList extends ConsumerWidget {
   final VoidCallback onBackfill;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HistoryList> createState() => _HistoryListState();
+}
+
+class _HistoryListState extends ConsumerState<_HistoryList> {
+  String _filter = 'all'; // all | incomplete | week
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = widget.plan;
+    final unit = widget.unit;
     final records =
         ref.watch(planRecordsProvider(plan.id)).valueOrNull ?? const [];
     final tasks = ref.watch(planTasksProvider(plan.id)).valueOrNull ?? const [];
@@ -125,7 +134,7 @@ class _HistoryList extends ConsumerWidget {
       );
     }
 
-    final sorted = [...records]..sort((a, b) => b.date.compareTo(a.date));
+    var sorted = [...records]..sort((a, b) => b.date.compareTo(a.date));
     final doneByDate = <DateTime, int>{};
     for (final l in logs) {
       if (l.completed) {
@@ -133,6 +142,16 @@ class _HistoryList extends ConsumerWidget {
         doneByDate[d] = (doneByDate[d] ?? 0) + 1;
       }
     }
+
+    final weekAgo = AppDate.addDays(AppDate.today(), -7);
+    sorted = sorted.where((r) {
+      if (_filter == 'week' && r.date.dateOnly.isBefore(weekAgo)) return false;
+      if (_filter == 'incomplete') {
+        final done = doneByDate[r.date.dateOnly] ?? 0;
+        return tasks.isNotEmpty && done < tasks.length;
+      }
+      return true;
+    }).toList();
     final totalCalories = records.fold<double>(
       0,
       (s, r) => s + r.caloriesBurned,
@@ -147,13 +166,17 @@ class _HistoryList extends ConsumerWidget {
 
     // Flatten the list into: title, summary card, then month header + rows.
     final items = <Widget>[
-      _PageHeader(onBackfill: onBackfill),
+      _PageHeader(onBackfill: widget.onBackfill),
       _SummaryBar(
         days: records.length,
         totalCalories: totalCalories,
         streak: streak,
       ),
       _StreakMilestone(streak: streak),
+      _FilterChips(
+        value: _filter,
+        onChanged: (v) => setState(() => _filter = v),
+      ),
     ];
     String? lastMonth;
     for (final r in sorted) {
@@ -169,6 +192,7 @@ class _HistoryList extends ConsumerWidget {
           doneTasks: doneByDate[r.date.dateOnly] ?? 0,
           totalTasks: tasks.length,
           onTap: () => showCheckInSheet(context, planId: plan.id, date: r.date),
+          onLongPress: () => _quickActions(context, plan, r),
         ),
       );
     }
@@ -195,6 +219,101 @@ class _HistoryList extends ConsumerWidget {
       ),
     );
   }
+
+  void _quickActions(BuildContext context, Plan plan, DailyRecord record) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.palette.surface,
+      builder:
+          (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.edit_note_rounded),
+                  title: const Text('编辑当日打卡'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    showCheckInSheet(
+                      context,
+                      planId: plan.id,
+                      date: record.date,
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_outline_rounded,
+                    color: context.palette.danger,
+                  ),
+                  title: Text(
+                    '清除当日指标',
+                    style: TextStyle(color: context.palette.danger),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final repo = ref.read(repositoryProvider);
+                    await repo.upsertRecord(
+                      planId: plan.id,
+                      date: record.date,
+                      caloriesBurned: 0,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('已清除当日指标')),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+}
+
+/// Filter chips above the history rows.
+class _FilterChips extends StatelessWidget {
+  const _FilterChips({required this.value, required this.onChanged});
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget chip(String id, String label) {
+      final selected = value == id;
+      return GestureDetector(
+        onTap: () => onChanged(id),
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color:
+                selected ? context.palette.primary : context.palette.fillInset,
+            borderRadius: AppRadius.pillAll,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : context.palette.textSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        chip('all', '全部'),
+        const SizedBox(width: AppSpacing.sm),
+        chip('incomplete', '任务未齐'),
+        const SizedBox(width: AppSpacing.sm),
+        chip('week', '近 7 天'),
+      ],
+    );
+  }
 }
 
 /// Screen title shared with the other four screens: same 28/700 size.
@@ -218,7 +337,7 @@ class _PageHeader extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
+                    letterSpacing: 0,
                     height: 1.15,
                     color: context.palette.textPrimary,
                   ),
@@ -229,7 +348,7 @@ class _PageHeader extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
-                    letterSpacing: -0.22,
+                    letterSpacing: 0,
                     color: context.palette.textSecondary,
                   ),
                 ),
@@ -339,7 +458,7 @@ class _Cell extends StatelessWidget {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
-                letterSpacing: -0.3,
+                letterSpacing: 0,
                 height: 1.15,
                 color: context.palette.textPrimary,
               ),
@@ -408,7 +527,7 @@ class _StreakMilestone extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: -0.22,
+                    letterSpacing: 0,
                     color: context.palette.textPrimary,
                   ),
                 ),
@@ -481,6 +600,7 @@ class _HistoryTile extends StatelessWidget {
     required this.doneTasks,
     required this.totalTasks,
     required this.onTap,
+    this.onLongPress,
   });
 
   final DailyRecord record;
@@ -488,6 +608,7 @@ class _HistoryTile extends StatelessWidget {
   final int doneTasks;
   final int totalTasks;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -497,6 +618,7 @@ class _HistoryTile extends StatelessWidget {
       radius: AppRadius.small,
       padding: const EdgeInsets.all(AppSpacing.md),
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Row(
         children: [
           Container(
@@ -541,7 +663,7 @@ class _HistoryTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: -0.22,
+                    letterSpacing: 0,
                     color: context.palette.textPrimary,
                   ),
                 ),

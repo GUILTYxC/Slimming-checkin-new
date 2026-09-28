@@ -279,52 +279,52 @@ class AppTheme {
           displayLarge: const TextStyle(
             fontSize: 56,
             fontWeight: FontWeight.w600,
-            letterSpacing: -0.28,
+            letterSpacing: 0,
             height: 1.07,
           ),
           // 28 — screen titles. Same size on every screen.
           headlineMedium: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w700,
-            letterSpacing: -0.4,
+            letterSpacing: 0,
             height: 1.2,
           ),
           // 22 — card titles.
           titleLarge: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            letterSpacing: -0.3,
+            letterSpacing: 0,
             height: 1.25,
           ),
           // 17 — list row titles.
           titleMedium: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
-            letterSpacing: -0.37,
+            letterSpacing: 0,
             height: 1.3,
           ),
           bodyLarge: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w400,
-            letterSpacing: -0.37,
+            letterSpacing: 0,
             height: 1.47,
           ),
           bodyMedium: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            letterSpacing: -0.22,
+            letterSpacing: 0,
             height: 1.43,
             color: textSecondary,
           ),
           labelLarge: const TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            letterSpacing: -0.24,
+            letterSpacing: 0,
           ),
           labelMedium: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            letterSpacing: -0.08,
+            letterSpacing: 0,
             color: textSecondary,
           ),
           labelSmall: TextStyle(

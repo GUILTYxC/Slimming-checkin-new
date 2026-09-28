@@ -23,15 +23,43 @@ Future<void> showCheckInSheet(
   int? planId,
   DateTime? date,
 }) async {
-  final saved = await showAppSheet<bool>(
+  final result = await showAppSheet<CheckInResult>(
     context,
     child: CheckInSheet(planId: planId, date: date),
   );
-  if (saved == true && context.mounted) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('打卡已保存')));
+  if (result == null || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.clearSnackBars();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(result.goalJustReached ? '打卡已保存 · 目标达成！' : '打卡已保存'),
+      duration: const Duration(seconds: 5),
+      action: result.undo == null
+          ? null
+          : SnackBarAction(
+              label: '撤销',
+              onPressed: () {
+                result.undo!();
+                messenger.showSnackBar(const SnackBar(content: Text('已撤销上次打卡')));
+              },
+            ),
+    ),
+  );
+  if (result.goalJustReached && context.mounted) {
+    HapticFeedback.heavyImpact();
+    await showDialog<void>(
+      context: context,
+      barrierColor: context.palette.barrier,
+      builder: (_) => const _CelebrationDialog(title: '目标达成！'),
+    );
   }
+}
+
+/// What a finished check-in hands back to the caller.
+class CheckInResult {
+  const CheckInResult({required this.undo, required this.goalJustReached});
+  final Future<void> Function()? undo;
+  final bool goalJustReached;
 }
 
 /// Half-screen daily check-in form: weight / body-fat / calories plus the
@@ -59,6 +87,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
   int? _planId;
   List<PlanTask> _tasks = const [];
   final Map<int, bool> _completed = {};
+  final Map<int, int> _values = {};
 
   bool _loading = true;
   bool _noPlan = false;
@@ -92,7 +121,9 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     _planId = planId;
     _tasks = tasks;
     for (final t in tasks) {
-      _completed[t.id] = logs.any((l) => l.taskId == t.id && l.completed);
+      final log = logs.where((l) => l.taskId == t.id).firstOrNull;
+      _values[t.id] = log?.value ?? 0;
+      _completed[t.id] = log?.completed ?? false;
     }
     if (record?.weight != null) {
       _weightCtrl.text = Formatters.weight(
@@ -123,19 +154,36 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
 
   int get _doneCount => _completed.values.where((v) => v).length;
 
-  Future<void> _toggle(PlanTask task) async {
-    final next = !(_completed[task.id] ?? false);
+  Future<void> _setTask(PlanTask task, {int? value, bool? toggle}) async {
+    final isDosage = task.targetCount > 1;
+    final prev = _values[task.id] ?? 0;
+    int nextValue;
+    bool nextDone;
+    if (isDosage && value != null) {
+      nextValue = value.clamp(0, task.targetCount);
+      nextDone = nextValue >= task.targetCount;
+    } else {
+      nextDone = toggle ?? !(_completed[task.id] ?? false);
+      nextValue = nextDone ? task.targetCount : 0;
+    }
     HapticFeedback.selectionClick();
-    setState(() => _completed[task.id] = next);
+    setState(() {
+      _values[task.id] = nextValue;
+      _completed[task.id] = nextDone;
+    });
     await ref
         .read(repositoryProvider)
         .setTaskCompletion(
           planId: _planId!,
           taskId: task.id,
           date: _date,
-          completed: next,
+          completed: nextDone,
+          value: nextValue,
         );
-    if (next && _tasks.isNotEmpty && _doneCount == _tasks.length) {
+    if (nextDone &&
+        prev < task.targetCount &&
+        _tasks.isNotEmpty &&
+        _doneCount == _tasks.length) {
       _celebrate();
     }
   }
@@ -170,6 +218,14 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     }
     final calories = double.tryParse(_caloriesCtrl.text.trim()) ?? 0;
 
+    final previous = await repo.getRecord(_planId!, _date);
+    final plan = await repo.getPlan(_planId!);
+    final goalBefore = plan != null && previous?.weight != null
+        ? (plan.startWeight >= plan.targetWeight
+            ? previous!.weight! <= plan.targetWeight
+            : previous!.weight! >= plan.targetWeight)
+        : false;
+
     setState(() => _saving = true);
     await repo.upsertRecord(
       planId: _planId!,
@@ -179,14 +235,39 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
       caloriesBurned: calories,
     );
     if (!mounted) return;
+
+    final goalAfter = plan != null && weightKg != null
+        ? (plan.startWeight >= plan.targetWeight
+            ? weightKg <= plan.targetWeight
+            : weightKg >= plan.targetWeight)
+        : false;
+
+    Future<void> undo() async {
+      await repo.upsertRecord(
+        planId: _planId!,
+        date: _date,
+        weight: previous?.weight,
+        bodyFat: previous?.bodyFat,
+        caloriesBurned: previous?.caloriesBurned ?? 0,
+        note: previous?.note,
+      );
+    }
+
     // Let the button morph into a checkmark before the sheet slides away.
     setState(() {
       _saving = false;
       _saved = true;
     });
     HapticFeedback.mediumImpact();
-    await Future<void>.delayed(const Duration(milliseconds: 450));
-    if (mounted) Navigator.of(context).pop(true);
+    await Future<void>.delayed(const Duration(milliseconds: 320));
+    if (mounted) {
+      Navigator.of(context).pop(
+        CheckInResult(
+          undo: undo,
+          goalJustReached: goalAfter && !goalBefore,
+        ),
+      );
+    }
   }
 
   void _celebrate() {
@@ -194,7 +275,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
     showDialog<void>(
       context: context,
       barrierColor: context.palette.barrier,
-      builder: (_) => const _CelebrationDialog(),
+      builder: (_) => const _CelebrationDialog(title: '今日任务全部完成'),
     );
   }
 
@@ -277,7 +358,7 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: -0.37,
+                        letterSpacing: 0,
                         color: context.palette.textPrimary,
                       ),
                     ),
@@ -316,7 +397,11 @@ class _CheckInSheetState extends ConsumerState<CheckInSheet> {
                         _TaskRow(
                           title: _tasks[i].title,
                           completed: _completed[_tasks[i].id] ?? false,
-                          onTap: () => _toggle(_tasks[i]),
+                          targetCount: _tasks[i].targetCount,
+                          unitLabel: _tasks[i].unit,
+                          value: _values[_tasks[i].id] ?? 0,
+                          onTap: () => _setTask(_tasks[i]),
+                          onStep: (v) => _setTask(_tasks[i], value: v),
                         ),
                         if (i != _tasks.length - 1)
                           const Divider(height: 1, indent: 46),
@@ -414,7 +499,7 @@ class _SheetHeader extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
+                    letterSpacing: 0,
                     color: context.palette.textPrimary,
                   ),
                 ),
@@ -520,7 +605,7 @@ class _MetricFieldState extends State<_MetricField> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    letterSpacing: -0.08,
+                    letterSpacing: 0,
                     color: context.palette.textSecondary,
                   ),
                 ),
@@ -546,7 +631,7 @@ class _MetricFieldState extends State<_MetricField> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
-                      letterSpacing: -0.3,
+                      letterSpacing: 0,
                       height: 1.15,
                       color: context.palette.textPrimary,
                     ),
@@ -583,14 +668,23 @@ class _TaskRow extends StatelessWidget {
     required this.title,
     required this.completed,
     required this.onTap,
+    this.targetCount = 1,
+    this.unitLabel,
+    this.value = 0,
+    this.onStep,
   });
 
   final String title;
   final bool completed;
   final VoidCallback onTap;
+  final int targetCount;
+  final String? unitLabel;
+  final int value;
+  final ValueChanged<int>? onStep;
 
   @override
   Widget build(BuildContext context) {
+    final isDosage = targetCount > 1;
     return InkWell(
       onTap: onTap,
       borderRadius: AppRadius.chipAll,
@@ -610,7 +704,10 @@ class _TaskRow extends StatelessWidget {
                 color: completed ? context.palette.primary : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: completed ? context.palette.primary : context.palette.border,
+                  color:
+                      completed
+                          ? context.palette.primary
+                          : context.palette.border,
                   width: 1.6,
                 ),
               ),
@@ -630,18 +727,41 @@ class _TaskRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  letterSpacing: -0.24,
+                  letterSpacing: 0,
                   color:
                       completed
                           ? context.palette.textTertiary
                           : context.palette.textPrimary,
-                  decoration:
-                      completed ? TextDecoration.lineThrough : null,
+                  decoration: completed ? TextDecoration.lineThrough : null,
                   decorationColor: context.palette.textTertiary,
                 ),
-                child: Text(title),
+                child: Text(
+                  isDosage
+                      ? '$title · $value/$targetCount${unitLabel ?? ''}'
+                      : title,
+                ),
               ),
             ),
+            if (isDosage && onStep != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed:
+                        value <= 0 ? null : () => onStep!(value - 1),
+                    icon: const Icon(Icons.remove_circle_outline_rounded),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed:
+                        value >= targetCount
+                            ? null
+                            : () => onStep!(value + 1),
+                    icon: const Icon(Icons.add_circle_outline_rounded),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -650,7 +770,8 @@ class _TaskRow extends StatelessWidget {
 }
 
 class _CelebrationDialog extends StatefulWidget {
-  const _CelebrationDialog();
+  const _CelebrationDialog({this.title = '全部完成！'});
+  final String title;
 
   @override
   State<_CelebrationDialog> createState() => _CelebrationDialogState();
@@ -698,17 +819,17 @@ class _CelebrationDialogState extends State<_CelebrationDialog> {
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                '今日任务全部完成',
+                widget.title,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
+                  letterSpacing: 0,
                   color: context.palette.textPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                '坚持就是胜利，继续加油',
+                widget.title == '目标达成！' ? '太棒了，目标体重已命中' : '坚持就是胜利，继续加油',
                 style: TextStyle(
                   fontSize: 13.5,
                   color: context.palette.textSecondary,

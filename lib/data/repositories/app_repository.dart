@@ -32,6 +32,8 @@ class AppRepository {
     required double startWeight,
     required double targetWeight,
     required List<String> taskTitles,
+    List<int>? taskTargetCounts,
+    List<String?>? taskUnits,
   }) {
     return _db.transaction(() async {
       // A newly created plan becomes the active one.
@@ -58,6 +60,8 @@ class AppRepository {
                 planId: id,
                 title: taskTitles[i],
                 sortOrder: Value(i),
+                targetCount: Value(taskTargetCounts?[i] ?? 1),
+                unit: Value(taskUnits?[i]),
               ),
             );
       }
@@ -109,12 +113,19 @@ class AppRepository {
                   planId: id,
                   title: task.title,
                   sortOrder: Value(i),
+                  targetCount: Value(task.targetCount),
+                  unit: Value(task.unit),
                 ),
               );
         } else {
           await (_db.update(_db.planTasks)
             ..where((t) => t.id.equals(task.id!))).write(
-            PlanTasksCompanion(title: Value(task.title), sortOrder: Value(i)),
+            PlanTasksCompanion(
+              title: Value(task.title),
+              sortOrder: Value(i),
+              targetCount: Value(task.targetCount),
+              unit: Value(task.unit),
+            ),
           );
         }
       }
@@ -252,6 +263,7 @@ class AppRepository {
     required int taskId,
     required DateTime date,
     required bool completed,
+    int value = 0,
   }) async {
     final d = date.dateOnly;
     // Atomic against the (taskId, date) unique key.
@@ -263,9 +275,13 @@ class AppRepository {
             taskId: taskId,
             date: d,
             completed: Value(completed),
+            value: Value(value),
           ),
           onConflict: DoUpdate(
-            (_) => TaskLogsCompanion(completed: Value(completed)),
+            (_) => TaskLogsCompanion(
+              completed: Value(completed),
+              value: Value(value),
+            ),
             target: [_db.taskLogs.taskId, _db.taskLogs.date],
           ),
         );
@@ -280,6 +296,105 @@ class AppRepository {
       await _db.delete(_db.dailyRecords).go();
       await _db.delete(_db.planTasks).go();
       await _db.delete(_db.plans).go();
+    });
+  }
+
+  /// Restores a payload produced by [exportAll]. Replaces local data so a
+  /// backup always lands as a complete snapshot. Returns plan/record counts.
+  Future<({int plans, int records})> importAll(Map<String, dynamic> payload) {
+    return _db.transaction(() async {
+      await _db.delete(_db.taskLogs).go();
+      await _db.delete(_db.dailyRecords).go();
+      await _db.delete(_db.planTasks).go();
+      await _db.delete(_db.plans).go();
+
+      final planIdMap = <int, int>{};
+      final plans = (payload['plans'] as List<dynamic>? ?? const []);
+      for (final raw in plans) {
+        final m = Map<String, dynamic>.from(raw as Map);
+        final oldId = m['id'] as int?;
+        final newId = await _db
+            .into(_db.plans)
+            .insert(
+              PlansCompanion.insert(
+                name: m['name'] as String,
+                startDate: DateTime.parse(m['startDate'] as String).dateOnly,
+                endDate: DateTime.parse(m['endDate'] as String).dateOnly,
+                startWeight: (m['startWeight'] as num).toDouble(),
+                targetWeight: (m['targetWeight'] as num).toDouble(),
+                isActive: Value(m['isActive'] as bool? ?? false),
+                createdAt: Value(
+                  m['createdAt'] != null
+                      ? DateTime.parse(m['createdAt'] as String)
+                      : DateTime.now(),
+                ),
+              ),
+            );
+        if (oldId != null) planIdMap[oldId] = newId;
+      }
+
+      final taskIdMap = <int, int>{};
+      for (final raw in (payload['tasks'] as List<dynamic>? ?? const [])) {
+        final m = Map<String, dynamic>.from(raw as Map);
+        final planId = planIdMap[m['planId'] as int?];
+        if (planId == null) continue;
+        final oldId = m['id'] as int?;
+        final newId = await _db
+            .into(_db.planTasks)
+            .insert(
+              PlanTasksCompanion.insert(
+                planId: planId,
+                title: m['title'] as String,
+                sortOrder: Value(m['sortOrder'] as int? ?? 0),
+              ),
+            );
+        if (oldId != null) taskIdMap[oldId] = newId;
+      }
+
+      var recordCount = 0;
+      for (final raw in (payload['records'] as List<dynamic>? ?? const [])) {
+        final m = Map<String, dynamic>.from(raw as Map);
+        final planId = planIdMap[m['planId'] as int?];
+        if (planId == null) continue;
+        await _db
+            .into(_db.dailyRecords)
+            .insert(
+              DailyRecordsCompanion.insert(
+                planId: planId,
+                date: DateTime.parse(m['date'] as String).dateOnly,
+                weight: Value(
+                  m['weight'] == null ? null : (m['weight'] as num).toDouble(),
+                ),
+                bodyFat: Value(
+                  m['bodyFat'] == null ? null : (m['bodyFat'] as num).toDouble(),
+                ),
+                caloriesBurned: Value(
+                  (m['caloriesBurned'] as num? ?? 0).toDouble(),
+                ),
+                note: Value(m['note'] as String?),
+              ),
+            );
+        recordCount++;
+      }
+
+      for (final raw in (payload['taskLogs'] as List<dynamic>? ?? const [])) {
+        final m = Map<String, dynamic>.from(raw as Map);
+        final planId = planIdMap[m['planId'] as int?];
+        final taskId = taskIdMap[m['taskId'] as int?];
+        if (planId == null || taskId == null) continue;
+        await _db
+            .into(_db.taskLogs)
+            .insert(
+              TaskLogsCompanion.insert(
+                planId: planId,
+                taskId: taskId,
+                date: DateTime.parse(m['date'] as String).dateOnly,
+                completed: Value(m['completed'] as bool? ?? false),
+              ),
+            );
+      }
+
+      return (plans: plans.length, records: recordCount);
     });
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/services/checkin_reminder.dart';
 import '../../core/theme/app_glass.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/formatters.dart';
@@ -70,6 +71,64 @@ class SettingsPage extends ConsumerWidget {
                           onChanged: controller.setThemeMode,
                         ),
                       ),
+                      const Divider(height: 1, indent: 46),
+                      _Row(
+                        icon: Icons.notifications_active_rounded,
+                        tint: context.palette.primary,
+                        tintSoft: context.palette.primarySoft,
+                        title: '打卡提醒',
+                        subtitle:
+                            settings.reminderEnabled
+                                ? '每天 ${settings.reminderHour.toString().padLeft(2, '0')}:${settings.reminderMinute.toString().padLeft(2, '0')} 提醒'
+                                : '每天固定时间提醒你打卡',
+                        trailing: Switch(
+                          value: settings.reminderEnabled,
+                          onChanged: (v) async {
+                            await controller.setReminder(enabled: v);
+                            if (v) {
+                              await CheckInReminder.scheduleDaily(
+                                hour: settings.reminderHour,
+                                minute: settings.reminderMinute,
+                              );
+                            } else {
+                              await CheckInReminder.cancel();
+                            }
+                          },
+                        ),
+                      ),
+                      if (settings.reminderEnabled) ...[
+                        const Divider(height: 1, indent: 46),
+                        _Row(
+                          icon: Icons.schedule_rounded,
+                          tint: context.palette.textSecondary,
+                          tintSoft: context.palette.fillInset,
+                          title: '提醒时间',
+                          trailing: TextButton(
+                            onPressed: () async {
+                              final t = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay(
+                                  hour: settings.reminderHour,
+                                  minute: settings.reminderMinute,
+                                ),
+                              );
+                              if (t == null || !context.mounted) return;
+                              await controller.setReminder(
+                                enabled: true,
+                                hour: t.hour,
+                                minute: t.minute,
+                              );
+                              await CheckInReminder.scheduleDaily(
+                                hour: t.hour,
+                                minute: t.minute,
+                              );
+                            },
+                            child: Text(
+                              '${settings.reminderHour.toString().padLeft(2, '0')}:${settings.reminderMinute.toString().padLeft(2, '0')}',
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -87,6 +146,15 @@ class SettingsPage extends ConsumerWidget {
                         title: '导出数据',
                         subtitle: '生成 JSON 并复制到剪贴板',
                         onTap: () => _export(context, ref),
+                      ),
+                      const Divider(height: 1, indent: 46),
+                      _Row(
+                        icon: Icons.download_rounded,
+                        tint: context.palette.primary,
+                        tintSoft: context.palette.primarySoft,
+                        title: '导入数据',
+                        subtitle: '粘贴 JSON 备份并覆盖本机数据',
+                        onTap: () => _import(context, ref),
                       ),
                       const Divider(height: 1, indent: 46),
                       _Row(
@@ -127,7 +195,7 @@ class SettingsPage extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: -0.24,
+                                letterSpacing: 0,
                                 color: context.palette.textPrimary,
                               ),
                             ),
@@ -214,6 +282,77 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => GlassDialog(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '导入数据',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: context.palette.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  '将覆盖本机全部数据。请粘贴此前导出的 JSON。',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: context.palette.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                TextField(
+                  controller: controller,
+                  maxLines: 6,
+                  decoration: const InputDecoration(hintText: '{"exportedAt":...}'),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('取消'),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('导入'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      final payload = jsonDecode(controller.text.trim()) as Map<String, dynamic>;
+      final result = await ref.read(repositoryProvider).importAll(payload);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已导入 ${result.plans} 个计划 · ${result.records} 条记录'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('导入失败：JSON 格式不正确')),
+        );
+      }
+    }
+  }
+
   Future<void> _clear(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -285,7 +424,7 @@ class _PageHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.w700,
-          letterSpacing: -0.4,
+          letterSpacing: 0,
           height: 1.15,
           color: context.palette.textPrimary,
         ),
@@ -464,7 +603,7 @@ class _Row extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      letterSpacing: -0.24,
+                      letterSpacing: 0,
                       color: titleColor ?? context.palette.textPrimary,
                     ),
                   ),

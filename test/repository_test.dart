@@ -116,6 +116,48 @@ void main() {
     },
   );
 
+  test('export then import restores an equivalent snapshot', () async {
+    final id = await repo.createPlan(
+      name: 'Backup',
+      startDate: DateTime(2026, 7, 1),
+      endDate: DateTime(2026, 7, 31),
+      startWeight: 80,
+      targetWeight: 70,
+      taskTitles: ['a', 'b'],
+    );
+    await repo.upsertRecord(
+      planId: id,
+      date: DateTime(2026, 7, 10),
+      weight: 79,
+      bodyFat: 22.5,
+      caloriesBurned: 120,
+    );
+    final tasks = await repo.getTasks(id);
+    await repo.setTaskCompletion(
+      planId: id,
+      taskId: tasks.first.id,
+      date: DateTime(2026, 7, 10),
+      completed: true,
+      value: 1,
+    );
+
+    final payload = await repo.exportAll();
+    await repo.clearAll();
+    expect(await repo.watchPlans().first, isEmpty);
+
+    final result = await repo.importAll(payload);
+    expect(result.plans, 1);
+    expect(result.records, 1);
+
+    final plans = await repo.watchPlans().first;
+    expect(plans.single.name, 'Backup');
+    final restoredTasks = await repo.getTasks(plans.single.id);
+    expect(restoredTasks.map((t) => t.title), ['a', 'b']);
+    final rec = await repo.getRecord(plans.single.id, DateTime(2026, 7, 10));
+    expect(rec?.weight, 79);
+    expect(rec?.bodyFat, 22.5);
+  });
+
   test('upsert and task completion stay single-row under conflict', () async {
     final id = await repo.createPlan(
       name: 'P',

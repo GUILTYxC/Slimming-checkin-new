@@ -8,6 +8,21 @@ import '../../core/utils/formatters.dart';
 import '../../data/models/dashboard_stats.dart';
 import '../../core/theme/app_palette.dart';
 
+/// Simple trailing moving average over the last [window] spots.
+List<FlSpot> _movingAverage(List<FlSpot> spots, int window) {
+  if (spots.length < 2) return spots;
+  final out = <FlSpot>[];
+  for (var i = 0; i < spots.length; i++) {
+    final start = math.max(0, i - window + 1);
+    var sum = 0.0;
+    for (var j = start; j <= i; j++) {
+      sum += spots[j].y;
+    }
+    out.add(FlSpot(spots[i].x, sum / (i - start + 1)));
+  }
+  return out;
+}
+
 /// Smooth weight-trend line with a soft gradient fill and a dashed goal line.
 class WeightLineChart extends StatelessWidget {
   const WeightLineChart({
@@ -166,6 +181,17 @@ class WeightLineChart extends StatelessWidget {
             ],
           ),
           lineBarsData: [
+            if (spots.length >= 3)
+              LineChartBarData(
+                spots: _movingAverage(spots, 7),
+                isCurved: true,
+                curveSmoothness: 0.2,
+                color: context.palette.weight.withValues(alpha: 0.35),
+                barWidth: 1.4,
+                isStrokeCapRound: true,
+                dotData: const FlDotData(show: false),
+                belowBarData: BarAreaData(show: false),
+              ),
             LineChartBarData(
               spots: spots,
               isCurved: true,

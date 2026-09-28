@@ -22,6 +22,12 @@ class PlanTasks extends Table {
       integer().references(Plans, #id, onDelete: KeyAction.cascade)();
   TextColumn get title => text().withLength(min: 1, max: 60)();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// Target repetitions/units per day. 1 = simple checkbox.
+  IntColumn get targetCount => integer().withDefault(const Constant(1))();
+
+  /// Optional unit label such as 杯 / 次 / 分钟.
+  TextColumn get unit => text().nullable()();
 }
 
 /// A single day's record for a plan: weight + body fat + calories + note.
@@ -53,6 +59,9 @@ class TaskLogs extends Table {
   DateTimeColumn get date => dateTime()();
   BoolColumn get completed => boolean().withDefault(const Constant(false))();
 
+  /// Progress toward [PlanTasks.targetCount]. Binary tasks use 0/1.
+  IntColumn get value => integer().withDefault(const Constant(0))();
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {taskId, date},
@@ -67,7 +76,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +85,12 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         // v2: daily_records gains the nullable body_fat column.
         await m.addColumn(dailyRecords, dailyRecords.bodyFat);
+      }
+      if (from < 3) {
+        // v3: dosage on tasks + per-day value on logs.
+        await m.addColumn(planTasks, planTasks.targetCount);
+        await m.addColumn(planTasks, planTasks.unit);
+        await m.addColumn(taskLogs, taskLogs.value);
       }
     },
     beforeOpen: (details) async {

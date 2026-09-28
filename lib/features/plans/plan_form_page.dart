@@ -23,10 +23,16 @@ class PlanFormPage extends ConsumerStatefulWidget {
 }
 
 class _TaskField {
-  _TaskField({this.id, String title = ''})
-    : controller = TextEditingController(text: title);
+  _TaskField({
+    this.id,
+    String title = '',
+    this.targetCount = 1,
+    this.unit,
+  }) : controller = TextEditingController(text: title);
   final int? id;
   final TextEditingController controller;
+  int targetCount;
+  String? unit;
 }
 
 class _PlanFormPageState extends ConsumerState<PlanFormPage> {
@@ -77,7 +83,16 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
       );
       _tasks
         ..clear()
-        ..addAll(tasks.map((t) => _TaskField(id: t.id, title: t.title)));
+        ..addAll(
+          tasks.map(
+            (t) => _TaskField(
+              id: t.id,
+              title: t.title,
+              targetCount: t.targetCount,
+              unit: t.unit,
+            ),
+          ),
+        );
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -126,12 +141,19 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final titles =
+    final inputs =
         _tasks
-            .map((t) => t.controller.text.trim())
-            .where((t) => t.isNotEmpty)
+            .where((t) => t.controller.text.trim().isNotEmpty)
+            .map(
+              (t) => TaskInput(
+                id: t.id,
+                title: t.controller.text.trim(),
+                targetCount: t.targetCount,
+                unit: t.unit,
+              ),
+            )
             .toList();
-    if (titles.isEmpty) {
+    if (inputs.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('请至少添加一个每日打卡任务')));
@@ -145,11 +167,6 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
     final targetKg = unit.toKg(double.parse(_targetWeightCtrl.text.trim()));
 
     if (widget.isEditing) {
-      final inputs =
-          _tasks
-              .where((t) => t.controller.text.trim().isNotEmpty)
-              .map((t) => TaskInput(id: t.id, title: t.controller.text.trim()))
-              .toList();
       await repo.updatePlan(
         id: widget.planId!,
         name: _nameCtrl.text.trim(),
@@ -166,7 +183,9 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
         endDate: _endDate,
         startWeight: startKg,
         targetWeight: targetKg,
-        taskTitles: titles,
+        taskTitles: [for (final t in inputs) t.title],
+        taskTargetCounts: [for (final t in inputs) t.targetCount],
+        taskUnits: [for (final t in inputs) t.unit],
       );
     }
     if (mounted) Navigator.of(context).pop();
@@ -334,6 +353,21 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                     hintText: '任务 ${i + 1}',
                     isDense: true,
                   ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Tooltip(
+                message: '每日目标次数（1 = 勾选）',
+                child: DropdownButton<int>(
+                  value: _tasks[i].targetCount.clamp(1, 20),
+                  isDense: true,
+                  underline: const SizedBox.shrink(),
+                  items: [
+                    for (final n in const [1, 2, 3, 4, 6, 8, 10, 12, 20])
+                      DropdownMenuItem(value: n, child: Text('×$n')),
+                  ],
+                  onChanged:
+                      (v) => setState(() => _tasks[i].targetCount = v ?? 1),
                 ),
               ),
               IconButton(

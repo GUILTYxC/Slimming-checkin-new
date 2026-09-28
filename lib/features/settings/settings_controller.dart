@@ -9,21 +9,38 @@ class AppSettings {
   const AppSettings({
     this.weightUnit = WeightUnit.kg,
     this.themeMode = ThemeMode.light,
+    this.reminderEnabled = false,
+    this.reminderHour = 20,
+    this.reminderMinute = 0,
   });
 
   final WeightUnit weightUnit;
   final ThemeMode themeMode;
+  final bool reminderEnabled;
+  final int reminderHour;
+  final int reminderMinute;
 
-  AppSettings copyWith({WeightUnit? weightUnit, ThemeMode? themeMode}) =>
-      AppSettings(
-        weightUnit: weightUnit ?? this.weightUnit,
-        themeMode: themeMode ?? this.themeMode,
-      );
+  AppSettings copyWith({
+    WeightUnit? weightUnit,
+    ThemeMode? themeMode,
+    bool? reminderEnabled,
+    int? reminderHour,
+    int? reminderMinute,
+  }) => AppSettings(
+    weightUnit: weightUnit ?? this.weightUnit,
+    themeMode: themeMode ?? this.themeMode,
+    reminderEnabled: reminderEnabled ?? this.reminderEnabled,
+    reminderHour: reminderHour ?? this.reminderHour,
+    reminderMinute: reminderMinute ?? this.reminderMinute,
+  );
 }
 
 class SettingsController extends Notifier<AppSettings> {
   static const _unitKey = 'settings.weightUnit';
   static const _themeKey = 'settings.themeMode';
+  static const _reminderKey = 'settings.reminderEnabled';
+  static const _reminderHourKey = 'settings.reminderHour';
+  static const _reminderMinuteKey = 'settings.reminderMinute';
 
   SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
 
@@ -43,7 +60,13 @@ class SettingsController extends Notifier<AppSettings> {
     } else {
       theme = ThemeMode.light;
     }
-    return AppSettings(weightUnit: unit, themeMode: theme);
+    return AppSettings(
+      weightUnit: unit,
+      themeMode: theme,
+      reminderEnabled: prefs.getBool(_reminderKey) ?? false,
+      reminderHour: prefs.getInt(_reminderHourKey) ?? 20,
+      reminderMinute: prefs.getInt(_reminderMinuteKey) ?? 0,
+    );
   }
 
   Future<void> setWeightUnit(WeightUnit unit) async {
@@ -54,6 +77,21 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setThemeMode(ThemeMode mode) async {
     state = state.copyWith(themeMode: mode);
     await _prefs.setString(_themeKey, mode.name);
+  }
+
+  Future<void> setReminder({
+    required bool enabled,
+    int? hour,
+    int? minute,
+  }) async {
+    state = state.copyWith(
+      reminderEnabled: enabled,
+      reminderHour: hour,
+      reminderMinute: minute,
+    );
+    await _prefs.setBool(_reminderKey, enabled);
+    if (hour != null) await _prefs.setInt(_reminderHourKey, hour);
+    if (minute != null) await _prefs.setInt(_reminderMinuteKey, minute);
   }
 }
 

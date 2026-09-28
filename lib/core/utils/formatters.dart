@@ -42,6 +42,14 @@ class Formatters {
   static String percent(double ratio) =>
       '${(ratio * 100).clamp(0, 100).round()}%';
 
+  /// Weekly pace such as "-0.4 kg/周" / "+0.3 kg/周". Null-safe.
+  static String weeklyDelta(double? deltaKg, WeightUnit unit) {
+    if (deltaKg == null) return '—';
+    final v = unit.fromKg(deltaKg);
+    final sign = v > 0.004 ? '+' : '';
+    return '$sign${_trim(v, 1)} ${unit.suffix}/周';
+  }
+
   static String _trim(double value, int decimals) {
     final s = value.toStringAsFixed(decimals);
     if (s.endsWith('.0')) return s.substring(0, s.length - 2);

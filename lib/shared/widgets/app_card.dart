@@ -19,6 +19,7 @@ class AppCard extends StatefulWidget {
     required this.child,
     this.padding = const EdgeInsets.all(AppSpacing.xl),
     this.onTap,
+    this.onLongPress,
     this.color,
     this.radius = AppRadius.card,
     this.border,
@@ -30,6 +31,7 @@ class AppCard extends StatefulWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final Color? color;
   final double radius;
 
@@ -62,11 +64,12 @@ class _AppCardState extends State<AppCard> {
   Widget build(BuildContext context) {
     final br = BorderRadius.circular(widget.radius);
     Widget content = Padding(padding: widget.padding, child: widget.child);
-    if (widget.onTap != null) {
+    if (widget.onTap != null || widget.onLongPress != null) {
       content = Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
           onHighlightChanged: _setPressed,
           borderRadius: br,
           splashColor: context.palette.primary.withValues(alpha: 0.08),

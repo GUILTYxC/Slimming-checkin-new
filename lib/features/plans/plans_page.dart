@@ -103,7 +103,7 @@ class _PageHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.4,
+                letterSpacing: 0,
                 height: 1.15,
                 color: context.palette.textPrimary,
               ),
@@ -266,7 +266,7 @@ class _PlanCard extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: -0.3,
+                          letterSpacing: 0,
                           color: context.palette.textPrimary,
                         ),
                       ),
@@ -310,13 +310,18 @@ class _PlanCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${AppDate.monthDay(plan.startDate)} - ${AppDate.monthDay(plan.endDate)}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: -0.08,
-                  color: context.palette.textSecondary,
+              Flexible(
+                child: Text(
+                  '${AppDate.monthDay(plan.startDate)} - ${AppDate.monthDay(plan.endDate)}'
+                  ' · ${plan.startWeight >= plan.targetWeight ? '减重' : '增重'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 0,
+                    color: context.palette.textSecondary,
+                  ),
                 ),
               ),
               Text(
@@ -324,7 +329,7 @@ class _PlanCard extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
-                  letterSpacing: -0.08,
+                  letterSpacing: 0,
                   color: context.palette.textTertiary,
                 ),
               ),
@@ -470,7 +475,7 @@ class _ActionRow extends StatelessWidget {
         style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          letterSpacing: -0.24,
+          letterSpacing: 0,
           color: effective,
         ),
       ),

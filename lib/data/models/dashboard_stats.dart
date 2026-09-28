@@ -45,6 +45,10 @@ class DashboardStats {
     required this.weightSeries,
     required this.bodyFatSeries,
     required this.last7Calories,
+    this.avgWeeklyDeltaKg,
+    this.recentWeeklyDeltaKg,
+    this.estimatedGoalDate,
+    this.weighInDays = 0,
   });
 
   final Plan plan;
@@ -69,6 +73,20 @@ class DashboardStats {
   final List<WeightPoint> weightSeries;
   final List<BodyFatPoint> bodyFatSeries;
   final List<CaloriePoint> last7Calories;
+
+  /// Signed kg/week over the whole plan (negative = losing). Null until
+  /// there are enough weigh-ins to say anything.
+  final double? avgWeeklyDeltaKg;
+
+  /// Signed kg/week over the last 7 days of weigh-ins. Null when thin.
+  final double? recentWeeklyDeltaKg;
+
+  /// Calendar day the goal is projected on current pace. Null when pace is
+  /// zero/wrong direction or the goal is already met.
+  final DateTime? estimatedGoalDate;
+
+  /// How many days actually have a weight logged.
+  final int weighInDays;
 
   /// True when the plan moves weight down (start ≥ target).
   bool get isLosingWeight => plan.startWeight >= plan.targetWeight;
@@ -197,6 +215,44 @@ class DashboardStats {
         }(),
     ];
 
+    // Insights: pace and projected goal date from weigh-ins.
+    final weighInDays = weighted.length;
+    final losing = plan.startWeight >= plan.targetWeight;
+    final goalDone =
+        losing
+            ? currentWeight <= plan.targetWeight
+            : currentWeight >= plan.targetWeight;
+    double? weeklyDelta(List<WeightPoint> pts) {
+      if (pts.length < 2) return null;
+      final days = AppDate.daysBetween(pts.first.date, pts.last.date);
+      if (days <= 0) return null;
+      return (pts.last.kg - pts.first.kg) / days * 7;
+    }
+
+    final avgWeeklyDeltaKg = weeklyDelta([
+      WeightPoint(plan.startDate, plan.startWeight),
+      for (final r in weighted)
+        if (!r.date.isSameDate(plan.startDate))
+          WeightPoint(r.date, r.weight!),
+    ]);
+
+    final recentCutoff = AppDate.addDays(today, -7);
+    final recentPts = [
+      for (final p in series)
+        if (!p.date.isBefore(recentCutoff)) p,
+    ];
+    final recentWeeklyDeltaKg = weeklyDelta(recentPts) ?? avgWeeklyDeltaKg;
+
+    DateTime? estimatedGoalDate;
+    if (!goalDone && recentWeeklyDeltaKg != null) {
+      final direction = losing ? -1.0 : 1.0;
+      final helpfulDelta = recentWeeklyDeltaKg * direction;
+      if (helpfulDelta > 1e-6) {
+        final weeks = remaining.abs() / helpfulDelta;
+        estimatedGoalDate = AppDate.addDays(today, (weeks * 7).ceil());
+      }
+    }
+
     return DashboardStats(
       plan: plan,
       currentWeight: currentWeight,
@@ -218,6 +274,10 @@ class DashboardStats {
       weightSeries: series,
       bodyFatSeries: fatSeries,
       last7Calories: last7,
+      avgWeeklyDeltaKg: avgWeeklyDeltaKg,
+      recentWeeklyDeltaKg: recentWeeklyDeltaKg,
+      estimatedGoalDate: estimatedGoalDate,
+      weighInDays: weighInDays,
     );
   }
 }

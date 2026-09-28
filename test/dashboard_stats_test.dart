@@ -19,8 +19,20 @@ void main() {
   test('computes weight, progress, streak and today figures', () {
     final plan = makePlan();
     final tasks = [
-      const PlanTask(id: 1, planId: 1, title: 'A', sortOrder: 0),
-      const PlanTask(id: 2, planId: 1, title: 'B', sortOrder: 1),
+      const PlanTask(
+        id: 1,
+        planId: 1,
+        title: 'A',
+        sortOrder: 0,
+        targetCount: 1,
+      ),
+      const PlanTask(
+        id: 2,
+        planId: 1,
+        title: 'B',
+        sortOrder: 1,
+        targetCount: 1,
+      ),
     ];
     final records = [
       DailyRecord(
@@ -48,8 +60,22 @@ void main() {
       ),
     ];
     final logs = [
-      TaskLog(id: 1, planId: 1, taskId: 1, date: today, completed: true),
-      TaskLog(id: 2, planId: 1, taskId: 2, date: today, completed: false),
+      TaskLog(
+        id: 1,
+        planId: 1,
+        taskId: 1,
+        date: today,
+        completed: true,
+        value: 1,
+      ),
+      TaskLog(
+        id: 2,
+        planId: 1,
+        taskId: 2,
+        date: today,
+        completed: false,
+        value: 0,
+      ),
     ];
 
     final s = DashboardStats.compute(
@@ -177,5 +203,40 @@ void main() {
       1,
     );
     expect(DashboardStats.computeStreak(const [], todayD), 0);
+  });
+
+  test('insights estimate pace and goal date', () {
+    final plan = makePlan();
+    // start 80 → target 70. Two weigh-ins a week apart: 80 → 78 = -2 kg/week.
+    final s = DashboardStats.compute(
+      plan: plan,
+      tasks: const [],
+      records: [
+        DailyRecord(
+          id: 1,
+          planId: 1,
+          date: DateTime(2026, 7, 12),
+          weight: 80,
+          caloriesBurned: 0,
+        ),
+        DailyRecord(
+          id: 2,
+          planId: 1,
+          date: DateTime(2026, 7, 19),
+          weight: 78,
+          caloriesBurned: 0,
+        ),
+      ],
+      logs: const [],
+      now: DateTime(2026, 7, 19),
+    );
+    expect(s.weighInDays, 2);
+    expect(s.avgWeeklyDeltaKg, isNotNull);
+    // remaining = 78-70 = 8 kg at ~2 kg/week → ~4 weeks.
+    expect(s.estimatedGoalDate, isNotNull);
+    expect(
+      s.estimatedGoalDate!.difference(DateTime(2026, 7, 19)).inDays,
+      closeTo(28, 7),
+    );
   });
 }

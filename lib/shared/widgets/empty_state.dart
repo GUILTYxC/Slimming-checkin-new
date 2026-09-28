@@ -48,7 +48,7 @@ class EmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.3,
+                letterSpacing: 0,
                 color: context.palette.textPrimary,
               ),
             ),
@@ -59,7 +59,7 @@ class EmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 height: 1.5,
-                letterSpacing: -0.22,
+                letterSpacing: 0,
                 color: context.palette.textSecondary,
               ),
             ),

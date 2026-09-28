@@ -29,8 +29,8 @@ class AppColors {
 
   // ── Text ────────────────────────────────────────────────────────────────
   static const Color textPrimary = Color(0xFF1D1D1F);
-  static const Color textSecondary = Color(0xFF6E6E73);
-  static const Color textTertiary = Color(0xFF86868B);
+  static const Color textSecondary = Color(0xFF5F5F64);
+  static const Color textTertiary = Color(0xFF6B6B70);
 
   /// Only for de-emphasised meta text such as chart axis labels.
   static const Color textQuaternary = Color(0xFFA0A0A5);
@@ -110,8 +110,8 @@ class AppColorsDark {
 
   // ── Text ────────────────────────────────────────────────────────────────
   static const Color textPrimary = Color(0xFFF5F5F7);
-  static const Color textSecondary = Color(0xFFAEAEB2);
-  static const Color textTertiary = Color(0xFF8E8E93);
+  static const Color textSecondary = Color(0xFFC7C7CC);
+  static const Color textTertiary = Color(0xFFA1A1A6);
   static const Color textQuaternary = Color(0xFF6E6E73);
 
   // ── Lines ───────────────────────────────────────────────────────────────

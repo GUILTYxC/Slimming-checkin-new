@@ -84,8 +84,10 @@ class _DashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final cards = <Widget>[
       _Header(stats: stats),
+      if (stats.daysRemaining <= 0) _PlanReportCard(stats: stats, unit: unit),
       _TodayCard(stats: stats),
       _WeightCard(stats: stats, unit: unit),
+      _InsightCard(stats: stats, unit: unit),
       _TrendCard(stats: stats, unit: unit),
     ];
 
@@ -141,7 +143,7 @@ class _Header extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    letterSpacing: -0.08,
+                    letterSpacing: 0,
                     color: context.palette.textSecondary,
                   ),
                 ),
@@ -153,7 +155,7 @@ class _Header extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
+                    letterSpacing: 0,
                     height: 1.15,
                     color: context.palette.textPrimary,
                   ),
@@ -196,7 +198,7 @@ class _StreakPill extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              letterSpacing: -0.08,
+              letterSpacing: 0,
               color: context.palette.textPrimary,
             ),
           ),
@@ -221,13 +223,13 @@ class _IconWell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 22,
-      height: 22,
+      width: 28,
+      height: 28,
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        color: tint.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(icon, size: 14, color: tint),
+      child: Icon(icon, size: 16, color: tint),
     );
   }
 }
@@ -272,7 +274,7 @@ class _TodayCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      letterSpacing: -0.37,
+                      letterSpacing: 0,
                       color: done ? context.palette.textPrimary : Colors.white,
                     ),
                   ),
@@ -283,7 +285,7 @@ class _TodayCard extends StatelessWidget {
                         : '记录体重、消耗与今日任务，约 30 秒',
                     style: TextStyle(
                       fontSize: 13,
-                      letterSpacing: -0.08,
+                      letterSpacing: 0,
                       color:
                           done
                               ? context.palette.textSecondary
@@ -384,7 +386,7 @@ class _WeightCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            letterSpacing: -0.08,
+                            letterSpacing: 0,
                             color: context.palette.textSecondary,
                           ),
                         ),
@@ -401,7 +403,7 @@ class _WeightCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 56,
                             fontWeight: FontWeight.w600,
-                            letterSpacing: -0.28,
+                            letterSpacing: 0,
                             height: 1.05,
                             color: context.palette.textPrimary,
                           ),
@@ -420,22 +422,28 @@ class _WeightCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (stats.weightLostKg > 0.05)
+              if (stats.weightLostKg.abs() > 0.05)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: context.palette.successSoft,
+                    color:
+                        stats.weightLostKg > 0
+                            ? context.palette.successSoft
+                            : context.palette.warningSoft,
                     borderRadius: AppRadius.pillAll,
                   ),
                   child: Text(
-                    '已减 $lostText',
+                    stats.weightLostKg > 0 ? '已减 $lostText' : '已增 $lostText',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: context.palette.successText,
+                      color:
+                          stats.weightLostKg > 0
+                              ? context.palette.successText
+                              : context.palette.warning,
                     ),
                   ),
                 ),
@@ -450,7 +458,7 @@ class _WeightCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: -0.08,
+                  letterSpacing: 0,
                   color: context.palette.primary,
                 ),
               ),
@@ -461,7 +469,7 @@ class _WeightCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  letterSpacing: -0.08,
+                  letterSpacing: 0,
                   color: context.palette.textSecondary,
                 ),
               ),
@@ -492,15 +500,163 @@ class _WeightCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(
-            '距目标 ${Formatters.weight(remaining.abs(), unit)} · '
-            '剩余 ${stats.daysRemaining} 天 · '
-            '累计完成度 ${Formatters.percent(stats.taskCompletionRate)}',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.12,
-              color: context.palette.textTertiary,
+          Row(
+            children: [
+              Expanded(
+                child: _MiniStat(
+                  label: '距目标',
+                  value: Formatters.weight(remaining.abs(), unit),
+                ),
+              ),
+              Container(width: 1, height: 28, color: context.palette.hairline),
+              Expanded(
+                child: _MiniStat(
+                  label: '剩余',
+                  value: '${stats.daysRemaining} 天',
+                ),
+              ),
+              Container(width: 1, height: 28, color: context.palette.hairline),
+              Expanded(
+                child: _MiniStat(
+                  label: '任务完成',
+                  value: Formatters.percent(stats.taskCompletionRate),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One third of the weight-card footer strip: caption + value.
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: context.palette.textTertiary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
+            color: context.palette.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pace / projection card: turns raw weigh-ins into a usable forecast.
+class _InsightCard extends StatelessWidget {
+  const _InsightCard({required this.stats, required this.unit});
+  final DashboardStats stats;
+  final WeightUnit unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final pace = stats.recentWeeklyDeltaKg;
+    final eta = stats.estimatedGoalDate;
+    final losing = stats.isLosingWeight;
+    String paceCopy;
+    if (pace == null) {
+      paceCopy = '再记录 2 次体重即可估算速度';
+    } else {
+      final helping = losing ? pace < 0 : pace > 0;
+      paceCopy = helping ? '节奏正确，保持下去' : '当前节奏偏慢，可加强运动';
+    }
+    final String etaCopy =
+        stats.goalReached
+            ? '目标已达成'
+            : eta != null
+            ? '预计 ${AppDate.monthDay(eta)} 达标'
+            : '按当前速度暂时无法预计达标日';
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _IconWell(
+                icon: Icons.insights_rounded,
+                tint: context.palette.primary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '节奏洞察',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0,
+                  color: context.palette.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniStat(
+                  label: '近 7 天速度',
+                  value: Formatters.weeklyDelta(pace, unit),
+                ),
+              ),
+              Container(width: 1, height: 28, color: context.palette.hairline),
+              Expanded(
+                child: _MiniStat(
+                  label: '计划均速',
+                  value: Formatters.weeklyDelta(stats.avgWeeklyDeltaKg, unit),
+                ),
+              ),
+              Container(width: 1, height: 28, color: context.palette.hairline),
+              Expanded(
+                child: _MiniStat(
+                  label: '已称重',
+                  value: '${stats.weighInDays} 天',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm + 2,
+            ),
+            decoration: BoxDecoration(
+              color: context.palette.primarySoft,
+              borderRadius: AppRadius.smallAll,
+            ),
+            child: Text(
+              '$etaCopy · $paceCopy',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: context.palette.primaryDark,
+              ),
             ),
           ),
         ],
@@ -508,6 +664,71 @@ class _WeightCard extends StatelessWidget {
     );
   }
 }
+
+/// Shown once the plan calendar is over: a short season recap.
+class _PlanReportCard extends StatelessWidget {
+  const _PlanReportCard({required this.stats, required this.unit});
+  final DashboardStats stats;
+  final WeightUnit unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final delta = unit.fromKg(stats.weightLostKg);
+    final direction = stats.weightLostKg >= 0 ? '减重' : '增重';
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      border: Border.all(color: context.palette.primary.withValues(alpha: 0.35)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _IconWell(
+                icon: Icons.emoji_events_rounded,
+                tint: context.palette.primary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '计划结营',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0,
+                  color: context.palette.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            '${stats.plan.name} 已结束 · '
+            '$direction ${delta.abs().toStringAsFixed(1)} ${unit.suffix} · '
+            '完成度 ${Formatters.percent(stats.progress)} · '
+            '最长连续 ${stats.streak} 天 · 任务达成 ${Formatters.percent(stats.taskCompletionRate)}',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: context.palette.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            stats.goalReached ? '恭喜达成目标体重！' : '未达目标也没关系，下一段可以从这里继续。',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color:
+                  stats.goalReached
+                      ? context.palette.successText
+                      : context.palette.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 /// 6px hairline progress bar used by the weight card.
 class _ProgressBar extends StatelessWidget {
@@ -623,7 +844,7 @@ class _TrendCardState extends State<_TrendCard> {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      letterSpacing: -0.37,
+                      letterSpacing: 0,
                       color: context.palette.textPrimary,
                     ),
                   ),
