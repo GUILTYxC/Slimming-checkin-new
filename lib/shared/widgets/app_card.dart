@@ -26,6 +26,7 @@ class AppCard extends StatefulWidget {
     this.shadow,
     this.clip = true,
     this.glass = true,
+    this.sheen = true,
   });
 
   final Widget child;
@@ -34,6 +35,9 @@ class AppCard extends StatefulWidget {
   final VoidCallback? onLongPress;
   final Color? color;
   final double radius;
+
+  /// Glass specular wash. Turn off over dense form text so it stays legible.
+  final bool sheen;
 
   /// Optional outline. Only needed when a glass pane needs a stronger edge.
   final BoxBorder? border;
@@ -85,6 +89,7 @@ class _AppCardState extends State<AppCard> {
               radius: widget.radius,
               color: widget.color,
               border: widget.border,
+              sheen: widget.sheen,
               shadow: _pressed ? const <BoxShadow>[] : widget.shadow,
               // The material deforms, not just the geometry: blur tightens,
               // fill densifies, rim dims, highlight drifts inward. See

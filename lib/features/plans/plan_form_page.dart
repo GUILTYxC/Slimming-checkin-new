@@ -55,7 +55,7 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
       _load();
     } else {
       _tasks.addAll([
-        _TaskField(title: '喝够 8 杯水'),
+        _TaskField(title: '喝够 8 杯水', targetCount: 8, unit: '杯'),
         _TaskField(title: '运动 30 分钟'),
       ]);
     }
@@ -210,6 +210,8 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                   ),
                   children: [
                     AppCard(
+                      // Form text sits under glass sheen otherwise and washes out.
+                      sheen: false,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -221,8 +223,14 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                           TextFormField(
                             controller: _nameCtrl,
                             textInputAction: TextInputAction.next,
+                            maxLength: 60,
+                            style: TextStyle(
+                              color: context.palette.textPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
                             decoration: const InputDecoration(
                               hintText: '计划名称，例如：夏日轻盈计划',
+                              counterText: '',
                             ),
                             validator:
                                 (v) =>
@@ -255,6 +263,7 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                     ),
                     const SizedBox(height: 14),
                     AppCard(
+                      sheen: false,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -264,18 +273,21 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                           ),
                           const SizedBox(height: 16),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
                                 child: _weightField(
                                   controller: _startWeightCtrl,
-                                  hint: '当前体重',
+                                  label: '当前体重',
+                                  hint: '例如 75',
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _weightField(
                                   controller: _targetWeightCtrl,
-                                  hint: '目标体重',
+                                  label: '目标体重',
+                                  hint: '例如 69',
                                 ),
                               ),
                             ],
@@ -285,6 +297,7 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
                     ),
                     const SizedBox(height: 14),
                     AppCard(
+                      sheen: false,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -341,33 +354,51 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
           child: Row(
             children: [
               Icon(
-                Icons.drag_indicator_rounded,
+                Icons.check_circle_outline_rounded,
                 color: context.palette.textTertiary,
                 size: 20,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextFormField(
                   controller: _tasks[i].controller,
+                  style: TextStyle(color: context.palette.textPrimary),
                   decoration: InputDecoration(
                     hintText: '任务 ${i + 1}',
                     isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               Tooltip(
                 message: '每日目标次数（1 = 勾选）',
-                child: DropdownButton<int>(
-                  value: _tasks[i].targetCount.clamp(1, 20),
-                  isDense: true,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    for (final n in const [1, 2, 3, 4, 6, 8, 10, 12, 20])
-                      DropdownMenuItem(value: n, child: Text('×$n')),
-                  ],
-                  onChanged:
-                      (v) => setState(() => _tasks[i].targetCount = v ?? 1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: context.palette.fillInset,
+                    borderRadius: AppRadius.chipAll,
+                  ),
+                  child: DropdownButton<int>(
+                    value: _tasks[i].targetCount.clamp(1, 20),
+                    isDense: true,
+                    style: TextStyle(
+                      color: context.palette.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    dropdownColor: context.palette.surface,
+                    underline: const SizedBox.shrink(),
+                    items: [
+                      for (final n in const [1, 2, 3, 4, 6, 8, 10, 12, 20])
+                        DropdownMenuItem(value: n, child: Text('×$n')),
+                    ],
+                    onChanged:
+                        (v) => setState(() => _tasks[i].targetCount = v ?? 1),
+                  ),
                 ),
               ),
               IconButton(
@@ -386,18 +417,38 @@ class _PlanFormPageState extends ConsumerState<PlanFormPage> {
 
   Widget _weightField({
     required TextEditingController controller,
+    required String label,
     required String hint,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-      decoration: InputDecoration(hintText: hint),
-      validator: (v) {
-        final value = double.tryParse((v ?? '').trim());
-        if (value == null || value <= 0) return '请输入有效体重';
-        return null;
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: context.palette.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+          style: TextStyle(
+            color: context.palette.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+          decoration: InputDecoration(hintText: hint),
+          validator: (v) {
+            final value = double.tryParse((v ?? '').trim());
+            if (value == null || value <= 0) return '请输入有效体重';
+            return null;
+          },
+        ),
+      ],
     );
   }
 }
@@ -465,25 +516,31 @@ class _DateField extends StatelessWidget {
             color: context.palette.primaryDark,
           ),
           const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: context.palette.textSecondary,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.palette.textSecondary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                AppDate.pretty(date),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                const SizedBox(height: 2),
+                Text(
+                  // Compact so "2026年9月28日" never clips in a half-width tile.
+                  '${date.month}月${date.day}日',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: context.palette.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
